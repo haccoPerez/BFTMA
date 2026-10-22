@@ -2,6 +2,6 @@
   "name": "bftma",
   "private": true,
   "type": "module",
-  "scripts": {"start": "node server.cjs", "test": "node --test --test-concurrency=1 ../tests/camera.test.cjs ../tests/game.test.cjs ../tests/orbital.test.cjs ../tests/pvp.test.cjs ../tests/pwa.test.cjs"},
+  "scripts": {"start": "node server.cjs", "test": "node --test --test-concurrency=1 ../tests/camera.test.cjs ../tests/game.test.cjs ../tests/levels.test.cjs ../tests/orbital.test.cjs ../tests/pvp.test.cjs ../tests/pwa.test.cjs"},
   "devDependencies": {"playwright": "1.62.1"}
 }

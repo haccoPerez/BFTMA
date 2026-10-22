@@ -38,6 +38,8 @@ La vista es local a cada navegador, independiente del estado PvP. Se limita la r
 
 `assets/backgrounds/puerto-tampico.png` es la imagen decorativa del fondo. `src/ui/scenery.js` la dibuja detrás del terreno y dibuja agua animada por delante de la parte baja del mapa. `scenery.waterY` en cada nivel fija la altura del agua. Ambas capas son solo visuales: no forman parte de la máscara, no cambian el daño ni añaden ahogamiento; las reglas de caída siguen siendo las existentes. La cámara vive en `src/ui/camera.js` y los terrenos conservan su resolución de colisión original.
 
+Cada nivel puede elegir su propio fondo con `scenery.background`. Kiosco Rosa, Hospital Canseco y Escolleras de Miramar añaden tres arenas de 1920×1080 con terreno PNG de alfa real, seis posiciones iniciales y fondos ilustrados distintos. El kiosco usa la cúpula de mosaico azul y los soportes curvos del «Pulpo Rosa»; el Canseco propone azoteas y patios inspirados en el edificio antiguo; las Escolleras combinan roca, plataformas y un faro con el mar al atardecer. Los fondos urbanos no llevan agua superpuesta. Los seis mapas están disponibles en local, IA y PvP y se guardan para uso sin conexión. Los prompts de las ilustraciones están junto a sus PNG en `assets/terrains/` y `assets/backgrounds/`.
+
 ## Controles de combate para móvil
 
 El HUD reserva la esquina inferior izquierda para moverse, con botones táctiles de 58 px. A la derecha quedan el salto, el arma equipada, la potencia y un botón circular de fuego de 88 px. En horizontal de poca altura se compactan manteniendo blancos táctiles amplios. Se respetan las áreas seguras de pantallas con recortes y el alto dinámico del navegador móvil.

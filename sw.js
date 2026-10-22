@@ -1,6 +1,6 @@
 // Bump this version when publishing changes to the offline resources.
 const PREFIX='bftma-'+encodeURIComponent(new URL(self.registration.scope).pathname)+'-';
-const CACHE=PREFIX+'v16';
+const CACHE=PREFIX+'v18';
 const FILES=[
   './','index.html','index_pvp.html','manifest.webmanifest',
   'assets/branding/bftma-title-v1.png',
@@ -13,6 +13,8 @@ const FILES=[
   'assets/characters/raccoon.png','assets/characters/accessories.png','assets/effects/combat-atlas.png',
   'assets/backgrounds/puerto-tampico.png','assets/terrains/fondo1.png',
   'assets/terrains/islas-gemelas-v2.png','assets/terrains/carguero-tampico.png',
+  'assets/terrains/kiosco-rosa-v2.png','assets/terrains/hospital-canseco-v1.png','assets/terrains/escolleras-miramar-v1.png',
+  'assets/backgrounds/kiosco-rosa-v2.png','assets/backgrounds/hospital-canseco-v1.png','assets/backgrounds/escolleras-miramar-v1.png',
   'assets/icons/icon-192.png','assets/icons/icon-512.png','assets/icons/icon-maskable-512.png',
   'assets/icons/apple-touch-icon.png','assets/icons/favicon-32.png'
 ];

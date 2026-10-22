@@ -73,6 +73,7 @@ function updateSetup(){
     mode.value==='ai'?'Tú eres el equipo azul. La computadora controla al rojo.':'Desafía a otro jugador desde un segundo dispositivo.';
   const level=LEVELS[levelSelect.value];if(!level)return;
   $('levelPreview').src=level.image;$('levelTitle').textContent=level.name;
+  document.querySelector('.terrain-preview').style.backgroundImage=level.scenery?.background?`url("${level.scenery.background}")`:'';
   $('levelSize').textContent=`${level.width} × ${level.height}`;
   $('levelDescription').textContent=level.description||'';
   preparation.refresh();

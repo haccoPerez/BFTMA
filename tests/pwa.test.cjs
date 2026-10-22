@@ -51,6 +51,18 @@ test('PWA installs under a repository path and runs offline in landscape',async(
     await context.setOffline(true);
     await page.reload();
     await page.waitForFunction(()=>!document.getElementById('startGame').disabled);
+    for(const id of ['kiosco','canseco','escolleras']){
+      await page.locator(`[data-level-card="${id}"]`).click();
+      await page.waitForFunction(()=>!document.getElementById('startGame').disabled);
+      assert.equal(await page.locator('#level').inputValue(),id);
+      const loaded=await page.evaluate(async()=>{
+        const {LEVELS,loadLevelSource}=await import('./src/levels/index.js');
+        const level=LEVELS[document.getElementById('level').value];
+        const terrain=await loadLevelSource(level),background=new Image();background.src=level.scenery.background;await background.decode();
+        return terrain.naturalWidth>0&&background.naturalWidth>0;
+      });
+      assert.ok(loaded,'Landmark resources unavailable offline: '+id);
+    }
     await page.locator('#startGame').click();
     await page.waitForFunction(()=>document.body.dataset.screen==='game'&&!document.getElementById('fireBtn').disabled);
     await page.locator('#backToMenu').evaluate(el=>el.click());

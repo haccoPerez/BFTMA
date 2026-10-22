@@ -1,12 +1,18 @@
+import {LEVELS} from '../levels/index.js';
 export const HARBOR_BACKGROUND=new URL('../../assets/backgrounds/puerto-tampico.png',import.meta.url).href;
-let background=null;
+const backgrounds=new Map();
 export async function loadScenery(){
-  const image=new Image();
-  await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=()=>reject(new Error('No se pudo cargar el fondo'));image.src=HARBOR_BACKGROUND;});
-  background=image;
+  const urls=new Set([HARBOR_BACKGROUND,...Object.values(LEVELS).map(level=>level.scenery?.background).filter(Boolean)]);
+  await Promise.all([...urls].map(async url=>{
+    if(backgrounds.has(url))return;
+    const image=new Image();
+    await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=()=>reject(new Error('No se pudo cargar el fondo: '+url));image.src=url;});
+    backgrounds.set(url,image);
+  }));
 }
-export function drawBackground(ctx,width,height){
+export function drawBackground(ctx,width,height,level=null){
   ctx.fillStyle='#8dcbd2';ctx.fillRect(0,0,width,height);
+  const background=backgrounds.get(level?.scenery?.background||HARBOR_BACKGROUND);
   if(!background)return;
   const scale=Math.max(width/background.width,height/background.height);
   const w=background.width*scale,h=background.height*scale;

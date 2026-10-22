@@ -26,9 +26,9 @@ export function renderGame(canvas,game,{camera=null,time=0,view=null,weapon='baz
       ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);
       if(camera){
         const ratio=canvas.width/camera.width;ctx.scale(ratio,ratio);
-        drawBackground(ctx,camera.width,camera.height);
+        drawBackground(ctx,camera.width,camera.height,game.level);
         ctx.translate(camera.width/2,camera.height/2);ctx.scale(camera.zoom,camera.zoom);ctx.translate(-camera.x,-camera.y);
-      }else drawBackground(ctx,WIDTH,HEIGHT);
+      }else drawBackground(ctx,WIDTH,HEIGHT,game.level);
       ctx.save();
 
       // 1. Capa de sombra detrás

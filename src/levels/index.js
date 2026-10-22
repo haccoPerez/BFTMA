@@ -24,7 +24,25 @@ export const LEVELS = Object.freeze({
     teamSpawns:[
       [{x:350,y:569},{x:480,y:504},{x:620,y:540},{x:740,y:639},{x:920,y:456}],
       [{x:1090,y:571},{x:1300,y:576},{x:1450,y:514},{x:1600,y:539},{x:1770,y:447}]
-    ]})
+    ]}),
+  kiosco: Object.freeze({id:'kiosco',name:'Kiosco Rosa',width:1920,height:1080,
+    scenery:Object.freeze({background:new URL('../../assets/backgrounds/kiosco-rosa-v2.png',import.meta.url).href}),
+    description:'La Plaza de Armas convertida en arena: terrazas de cantera rosa, jardines y el emblemático kiosco.',
+    image:new URL('../../assets/terrains/kiosco-rosa-v2.png',import.meta.url).href,
+    spawns:[{x:260,y:40},{x:1660,y:40}],
+    teamSpawns:[[{x:260,y:40},{x:460,y:40},{x:680,y:40}],[{x:1240,y:40},{x:1460,y:40},{x:1660,y:40}]]}),
+  canseco: Object.freeze({id:'canseco',name:'Hospital Canseco',width:1920,height:1080,
+    scenery:Object.freeze({background:new URL('../../assets/backgrounds/hospital-canseco-v1.png',import.meta.url).href}),
+    description:'Azoteas escalonadas, patios y refugios inspirados en el antiguo Hospital Carlos Canseco.',
+    image:new URL('../../assets/terrains/hospital-canseco-v1.png',import.meta.url).href,
+    spawns:[{x:260,y:40},{x:1660,y:40}],
+    teamSpawns:[[{x:260,y:40},{x:460,y:40},{x:680,y:40}],[{x:1240,y:40},{x:1460,y:40},{x:1660,y:40}]]}),
+  escolleras: Object.freeze({id:'escolleras',name:'Escolleras de Miramar',width:1920,height:1080,
+    scenery:Object.freeze({background:new URL('../../assets/backgrounds/escolleras-miramar-v1.png',import.meta.url).href,waterY:970}),
+    description:'Bloques de piedra, desniveles y un faro junto al mar de Ciudad Madero al atardecer.',
+    image:new URL('../../assets/terrains/escolleras-miramar-v1.png',import.meta.url).href,
+    spawns:[{x:260,y:40},{x:1660,y:40}],
+    teamSpawns:[[{x:260,y:40},{x:460,y:40},{x:680,y:40}],[{x:1240,y:40},{x:1460,y:40},{x:1660,y:40}]]})
 });
 
 export async function loadLevelSource(level) {

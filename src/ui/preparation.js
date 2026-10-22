@@ -20,6 +20,7 @@ export function bindPreparation(){
   for(const level of Object.values(LEVELS)){
     const button=document.createElement('button');button.type='button';button.dataset.levelCard=level.id;
     const image=document.createElement('img');image.src=level.image;image.alt='';
+    if(level.scenery?.background){image.style.backgroundImage=`url("${level.scenery.background}")`;image.style.backgroundSize='cover';image.style.borderRadius='6px';}
     const label=document.createElement('span');label.textContent=level.name;button.append(image,label);
     button.addEventListener('click',()=>{if(levelSelect.disabled)return;levelSelect.value=level.id;levelSelect.dispatchEvent(new Event('change'));});
     document.getElementById('levelCards').append(button);

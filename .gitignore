@@ -1,0 +1,16 @@
+node_modules/
+tests/preview.png
+tests/customization-preview.png
+tests/offsets-preview.png
+tests/menu-mobile.png
+tests/menu-desktop.png
+tests/ship-preview.png
+tests/ship-overview.png
+tests/camera-mobile.png
+tests/projectile-camera.png
+tests/result-win.png
+tests/result-lose.png
+tests/menu-refresh-mobile.png
+tests/grave-preview.png
+tests/menu-landscape.png
+tests/character-landscape.png

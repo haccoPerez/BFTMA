@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tres en raya P2P — sin servidor</title>
+<style>
+  :root {
+    --bg: #12181f;
+    --panel: #1b2430;
+    --line: #2c394a;
+    --accent: #5fc9a8;
+    --accent-2: #e8a355;
+    --text: #e7ecf2;
+    --muted: #8a97a8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  main {
+    width: 100%;
+    max-width: 420px;
+  }
+  h1 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+  p.sub {
+    color: var(--muted);
+    margin: 0 0 20px;
+    font-size: 0.9rem;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .fila {
+    display: flex;
+    gap: 8px;
+  }
+  input[type="text"] {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+  }
+  button {
+    background: var(--accent);
+    color: #0b1410;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.95rem;
+  }
+  button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  button.secundario {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--line);
+  }
+  #estado {
+    font-size: 0.9rem;
+    color: var(--muted);
+    min-height: 1.2em;
+  }
+  #estado.activo { color: var(--accent); }
+  #estado.error { color: #e5766c; }
+
+  #tablero {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-top: 16px;
+  }
+  .celda {
+    aspect-ratio: 1;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.4rem;
+    font-weight: 700;
+    cursor: pointer;
+    color: var(--accent);
+  }
+  .celda[data-val="O"] { color: var(--accent-2); }
+  .celda:disabled { cursor: default; }
+
+  #panelJuego { display: none; }
+  .oculto { display: none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Tres en raya — P2P sin servidor</h1>
+  <p class="sub">Conexión directa por WebRTC vía Trystero. No hay backend: solo dos navegadores hablando entre sí.</p>
+
+  <div class="panel" id="panelConexion">
+    <div class="fila">
+      <input type="text" id="inputSala" placeholder="Código de sala (invéntalo)" />
+      <button id="btnConectar">Conectar</button>
+    </div>
+    <p id="estado">Escribe un código de sala y compártelo con tu rival. Los dos deben usar el mismo código.</p>
+  </div>
+
+  <div class="panel" id="panelJuego">
+    <p id="estadoJuego" class="activo"></p>
+    <div id="tablero"></div>
+    <div class="fila" style="margin-top:14px;">
+      <button class="secundario" id="btnReiniciar">Reiniciar partida</button>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+  // Trystero vía CDN, sin necesidad de npm/bundler.
+  // Por defecto usa la red Nostr para el "signaling" (el apretón de manos inicial).
+  import { joinRoom, selfId } from 'https://esm.run/trystero';
+
+  const inputSala = document.getElementById('inputSala');
+  const btnConectar = document.getElementById('btnConectar');
+  const estado = document.getElementById('estado');
+  const panelConexion = document.getElementById('panelConexion');
+  const panelJuego = document.getElementById('panelJuego');
+  const estadoJuego = document.getElementById('estadoJuego');
+  const tableroEl = document.getElementById('tablero');
+  const btnReiniciar = document.getElementById('btnReiniciar');
+
+  // Identificador único de esta app: cámbialo para no chocar con otras pruebas
+  // de gente usando Trystero con el mismo nombre.
+  const APP_ID = 'demo-tateti-serverless-anthropic';
+
+  let room = null;
+  let peerId = null;      // el otro jugador
+  let mySymbol = null;    // 'X' u 'O'
+  let oppSymbol = null;
+  let miTurno = false;
+  let tablero = Array(9).fill(null);
+  let juegoTerminado = false;
+
+  const LINEAS = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+  ];
+
+  // --- Construir las 9 celdas ---
+  for (let i = 0; i < 9; i++) {
+    const celda = document.createElement('button');
+    celda.className = 'celda';
+    celda.dataset.i = i;
+    celda.addEventListener('click', () => jugar(i));
+    tableroEl.appendChild(celda);
+  }
+
+  btnConectar.addEventListener('click', conectar);
+  btnReiniciar.addEventListener('click', () => {
+    reiniciar();
+    if (room) accionReiniciar.send(true);
+  });
+
+  function conectar() {
+    const sala = inputSala.value.trim();
+    if (!sala) {
+      estado.textContent = 'Pon un código de sala primero.';
+      estado.className = 'error';
+      return;
+    }
+
+    btnConectar.disabled = true;
+    inputSala.disabled = true;
+    estado.textContent = 'Buscando rival...';
+    estado.className = '';
+
+    room = joinRoom({ appId: APP_ID }, sala);
+
+    // Acción para enviar/recibir jugadas (solo mandamos el índice de la celda)
+    window.accionMover = room.makeAction('mover');
+    window.accionReiniciar = room.makeAction('reiniciar');
+
+    room.onPeerJoin = (id) => {
+      // Con dos jugadores basta: ignoramos a cualquiera de más.
+      if (peerId) return;
+      peerId = id;
+
+      // Asignación determinista de símbolo: no hace falta un "host",
+      // ambos calculan lo mismo comparando los IDs.
+      if (selfId < peerId) {
+        mySymbol = 'X';
+        oppSymbol = 'O';
+      } else {
+        mySymbol = 'O';
+        oppSymbol = 'X';
+      }
+      miTurno = mySymbol === 'X';
+
+      panelConexion.classList.add('oculto');
+      panelJuego.style.display = 'block';
+      actualizarEstadoJuego();
+    };
+
+    room.onPeerLeave = () => {
+      estadoJuego.textContent = 'Tu rival se desconectó.';
+      estadoJuego.className = 'error';
+      peerId = null;
+    };
+
+    accionMover.onMessage = (i) => {
+      if (juegoTerminado) return;
+      tablero[i] = oppSymbol;
+      miTurno = true;
+      pintarTablero();
+      revisarFin();
+    };
+
+    accionReiniciar.onMessage = () => reiniciar();
+  }
+
+  function jugar(i) {
+    if (!peerId || juegoTerminado || !miTurno || tablero[i]) return;
+    tablero[i] = mySymbol;
+    miTurno = false;
+    accionMover.send(i);
+    pintarTablero();
+    revisarFin();
+  }
+
+  function pintarTablero() {
+    [...tableroEl.children].forEach((celda, i) => {
+      celda.textContent = tablero[i] || '';
+      celda.dataset.val = tablero[i] || '';
+      celda.disabled = !!tablero[i] || juegoTerminado || !miTurno;
+    });
+    actualizarEstadoJuego();
+  }
+
+  function actualizarEstadoJuego() {
+    if (juegoTerminado) return;
+    estadoJuego.textContent = `Eres "${mySymbol}". ${miTurno ? 'Tu turno.' : 'Turno del rival...'}`;
+    estadoJuego.className = miTurno ? 'activo' : '';
+  }
+
+  function ganador() {
+    for (const [a,b,c] of LINEAS) {
+      if (tablero[a] && tablero[a] === tablero[b] && tablero[a] === tablero[c]) {
+        return tablero[a];
+      }
+    }
+    if (tablero.every(Boolean)) return 'empate';
+    return null;
+  }
+
+  function revisarFin() {
+    const res = ganador();
+    if (!res) return;
+    juegoTerminado = true;
+    [...tableroEl.children].forEach(c => c.disabled = true);
+    if (res === 'empate') {
+      estadoJuego.textContent = 'Empate.';
+      estadoJuego.className = '';
+    } else {
+      estadoJuego.textContent = res === mySymbol ? 'Ganaste 🎉' : 'Perdiste.';
+      estadoJuego.className = res === mySymbol ? 'activo' : 'error';
+    }
+  }
+
+  function reiniciar() {
+    tablero = Array(9).fill(null);
+    juegoTerminado = false;
+    miTurno = mySymbol === 'X';
+    pintarTablero();
+  }
+</script>
+</body>
+</html>

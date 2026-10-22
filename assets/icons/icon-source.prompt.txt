@@ -1,0 +1,5 @@
+Generated with the built-in image_gen tool. Reference: assets/characters/raccoon.png.
+
+Create a polished square mobile game app icon for BFTMA, a playful turn based artillery game set around Tampico harbor. Use the attached raccoon image as character identity reference: friendly chubby gray raccoon, cream muzzle, dark eye mask, shiny black eyes, bold dark outlines, painterly cartoon game art. Close-up smiling raccoon head wearing a small olive military helmet. Rich navy and teal simple background, warm golden rim light. One clear centered silhouette, readable at tiny size. IMPORTANT maskable app icon: all important face, ears and helmet contained inside the central 70% of the square, generous navy background padding around all sides, background fills all square corners with NO rounded outer border. No lettering, no text, no extra characters, no watermark. Output square opaque image.
+
+Production exports: PNG 192 and 512 for the app, 180 for Apple touch icon, 32 for favicon. Maskable 512 export uses additional opaque navy padding to protect the silhouette under launcher masks.

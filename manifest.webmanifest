@@ -1,0 +1,18 @@
+{
+  "id": "./",
+  "name": "BFTMA · Artillería por turnos",
+  "short_name": "BFTMA",
+  "description": "Batallas de artillería en terrenos destructibles del puerto de Tampico.",
+  "lang": "es",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#102637",
+  "theme_color": "#102637",
+  "icons": [
+    {"src":"assets/icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
+    {"src":"assets/icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"},
+    {"src":"assets/icons/icon-maskable-512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}
+  ]
+}

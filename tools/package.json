@@ -1,0 +1,7 @@
+{
+  "name": "bftma",
+  "private": true,
+  "type": "module",
+  "scripts": {"start": "node server.cjs", "test": "node --test ../tests/game.test.cjs"},
+  "devDependencies": {"playwright": "1.62.1"}
+}

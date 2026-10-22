@@ -13,7 +13,10 @@ import {bindBattleHud} from './ui/battle-hud.js';
 import {loadCombatArt} from './ui/combat-art.js';
 import {bindPreparation} from './ui/preparation.js';
 import {bindResults} from './ui/results.js';
-const camera=createCamera();
+import {createPrediction} from './network/prediction.js';
+import {bindCoin} from './ui/coin.js';
+const camera=createCamera(),prediction=createPrediction();
+let ackCommandSeq=0;
 
 const $=id=>document.getElementById(id);
 const canvas=$('gameCanvas'),levelSelect=$('level'),mode=$('mode');
@@ -24,20 +27,23 @@ const sources=new Map();
 let game=null,session=null,connected=false,weapon='bazooka',epoch=0,sequence=0,receivedSequence=-1;
 let accumulator=0,lastTime=0,lastBroadcast=0,loading=false,playing=false,assetsReady=false,connecting=false,connectionAttempt=0;
 let remoteAppearance=normalizeAppearance();
+let fuseSeconds=2;
+const loadouts=[{weapon:'bazooka',fuse:2},{weapon:'bazooka',fuse:2}];
 const status=message=>{$('status').textContent=message;$('menuStatus').textContent=message;};
 for(const level of Object.values(LEVELS))levelSelect.add(new Option(level.name,level.id));
 if(new URLSearchParams(location.search).get('mode')==='pvp')mode.value='pvp';
 const authoritative=()=>mode.value!=='pvp'||session?.isHost;
-const canControl=()=>playing&&!!game&&!game.gameOver&&!game.resolving&&!loading&&(mode.value==='local'||(mode.value==='ai'&&game.currentTurn===0)||(connected&&game.currentTurn===session.playerIndex));
+const canControl=()=>playing&&!!game&&game.canAct&&!loading&&(mode.value==='local'||(mode.value==='ai'&&game.currentTurn===0)||(connected&&(session.isHost||prediction.ready)&&game.currentTurn===session.playerIndex));
 function send(command){
   if(!canControl())return;
   const data={...command,turnId:game.turnId,epoch};
   if(authoritative())game.command(mode.value==='local'?game.currentTurn:0,data);
-  else session.sendCommand(data);
+  else session.sendCommand(prediction.command(game,session.playerIndex,data));
 }
-const input=bindInput(canvas,{getGame:()=>game,canControl,send,getCamera:()=>camera,isPlaying:()=>playing});
+const input=bindInput(canvas,{getGame:()=>game,canControl,send,getCamera:()=>camera,isPlaying:()=>playing,getWeapon:()=>weapon});
 const hud=bindBattleHud();
 const preparation=bindPreparation();
+const coin=bindCoin();
 const results=bindResults({onMenu:()=>{$('backToMenu').click();},onRestart:()=>{$('reset').click();}});
 for(const [id,action] of [['zoomIn',()=>camera.zoomAt(1.2)],['zoomOut',()=>camera.zoomAt(1/1.2)],['viewMap',()=>camera.showMap()],['followPlayer',()=>camera.resume()]])$(id).addEventListener('click',action);
 const styles=bindCustomization({
@@ -72,7 +78,7 @@ function updateSetup(){
   preparation.refresh();
 }
 function applyStyles(){
-  if(mode.value!=='pvp')game.players.forEach((p,index)=>game.command(index,{type:'appearance',appearance:styles.getLocal(index)}));
+  if(mode.value!=='pvp')for(const team of [0,1])game.command(team,{type:'appearance',appearance:styles.getLocal(team)});
   else if(session?.isHost){
     game.command(0,{type:'appearance',appearance:styles.getOnline()});
     game.command(1,{type:'appearance',appearance:remoteAppearance});
@@ -88,7 +94,8 @@ async function selectLevel(level) {
   input.clear();status('Cargando terreno…');
   try {
     const source=await getSource(level);
-    game=createGame(level,source);canvas.width=level.width;canvas.height=level.height;
+    prediction.reset();ackCommandSeq=0;
+    game=createGame(level,source,{firstTeam:crypto.getRandomValues(new Uint32Array(1))[0]%2,introTicks:150});canvas.width=level.width;canvas.height=level.height;
     applyStyles();styles.refresh();
     levelSelect.value=level.id;accumulator=0;epoch++;
     updateSetup();
@@ -96,7 +103,7 @@ async function selectLevel(level) {
   } finally {loading=false;}
 }
 function disconnect(){
-  connectionAttempt++;
+  connectionAttempt++;prediction.reset();ackCommandSeq=0;
   session?.close();session=null;connected=false;connecting=false;receivedSequence=-1;input.clear();
   $('connect').disabled=false;$('room').disabled=false;levelSelect.disabled=false;$('reset').disabled=false;
   remoteAppearance=normalizeAppearance();styles.refresh();
@@ -129,10 +136,21 @@ $('reset').addEventListener('click',async()=>{
   try{await selectLevel(game.level);}catch(error){status(error.message);}
 });
 for(const button of document.querySelectorAll('[data-weapon]'))button.addEventListener('click',()=>{
+  if(!canControl()||!game.canFire)return;
   weapon=button.dataset.weapon;
+  loadouts[game.currentTurn].weapon=weapon;
+  input.clear();
   hud.selectWeapon(weapon);
 });
-$('fireBtn').addEventListener('click',()=>send({type:'fire',weapon}));
+$('fireBtn').addEventListener('click',()=>{send({type:'fire',weapon});hud.close();});
+$('cancelOrbital').addEventListener('click',()=>send({type:'cancelOrbital'}));
+$('shotPower').addEventListener('input',()=>send({type:'power',power:Number($('shotPower').value)/100}));
+$('fuseToggle').addEventListener('click',()=>{
+  if(!canControl()||!game.canFire)return;
+  fuseSeconds=game.activePlayer.grenadeFuse===4?2:game.activePlayer.grenadeFuse+1;
+  loadouts[game.currentTurn].fuse=fuseSeconds;
+  send({type:'fuse',seconds:fuseSeconds});
+});
 $('connect').addEventListener('click',async()=>{
   if(loading||!assetsReady||connecting)return;
   const unavailable=pvpUnavailableReason();if(unavailable){status(unavailable);return;}
@@ -158,7 +176,10 @@ $('connect').addEventListener('click',async()=>{
         if(command?.type==='appearance'){
           remoteAppearance=normalizeAppearance(command.appearance);
           if(game)game.command(index,{type:'appearance',appearance:remoteAppearance});
-        }else if(game&&!loading&&command?.epoch===epoch)game.command(index,command);
+        }else if(game&&!loading&&command?.epoch===epoch){
+          if(Number.isInteger(command.commandSeq))ackCommandSeq=Math.max(ackCommandSeq,command.commandSeq);
+          game.command(index,command);
+        }
       },
       onState:async packet=>{
         if(!packet||!Number.isInteger(packet.sequence)||packet.sequence<=receivedSequence||!LEVELS[packet.state?.levelId])return;
@@ -166,12 +187,12 @@ $('connect').addEventListener('click',async()=>{
         const source=await getSource(LEVELS[packet.state.levelId]);
         if(packet.sequence!==receivedSequence||!connected)return;
         if(!game||game.level.id!==packet.state.levelId||packet.epoch!==epoch){
-          input.clear();game=createGame(LEVELS[packet.state.levelId],source);epoch=packet.epoch;
+          input.clear();prediction.reset();game=createGame(LEVELS[packet.state.levelId],source);epoch=packet.epoch;
           canvas.width=game.level.width;canvas.height=game.level.height;levelSelect.value=game.level.id;
           updateSetup();
         }
         const changedTurn=game.turnId!==packet.state.turnId;
-        game.restore(packet.state);
+        prediction.reconcile(game,packet,session.playerIndex,session.latency||0);
         // Retry until acknowledged, including the first peer handshake and resets.
         if(JSON.stringify(game.players[session.playerIndex].appearance)!==JSON.stringify(styles.getOnline()))
           session.sendCommand({type:'appearance',appearance:styles.getOnline()});
@@ -186,7 +207,14 @@ $('leave').addEventListener('click',()=>{setPlaying(false);disconnect();mode.dis
 function frame(now){
   const elapsed=lastTime?Math.min((now-lastTime)/1000,.25):0;lastTime=now;
   const running=playing&&game&&!loading&&(mode.value!=='pvp'||connected);
-  if(running&&authoritative()){
+  if(canControl()&&game.canFire){
+    const selected=loadouts[game.currentTurn];
+    if(weapon!==selected.weapon){weapon=selected.weapon;hud.selectWeapon(weapon);}
+    fuseSeconds=selected.fuse;
+    if(game.activePlayer.equipped!==weapon)send({type:'equip',weapon});
+    if(game.activePlayer.grenadeFuse!==fuseSeconds)send({type:'fuse',seconds:fuseSeconds});
+  }
+  if(running&&(authoritative()||prediction.ready)){
     accumulator+=elapsed;
     while(accumulator>=FIXED_STEP){
       const turn=game.turnId;
@@ -194,7 +222,7 @@ function frame(now){
       game.step();accumulator-=FIXED_STEP;
       if(game.turnId!==turn)input.clear();
     }
-    if(connected&&now-lastBroadcast>=50){session.sendState({epoch,sequence:++sequence,state:game.snapshot()});lastBroadcast=now;}
+    if(connected&&authoritative()&&now-lastBroadcast>=100){session.sendState({epoch,sequence:++sequence,ackCommandSeq,state:game.snapshot()});lastBroadcast=now;}
   }else accumulator=0;
   if(game){
     const rect=canvas.getBoundingClientRect(),ratio=Math.min(window.devicePixelRatio||1,1.5);
@@ -202,16 +230,17 @@ function frame(now){
     if(canvas.width!==width)canvas.width=width;if(canvas.height!==height)canvas.height=height;
     camera.resize(rect.width,rect.height);camera.update(game,elapsed);
     canvas.dataset.worldWidth=game.level.width;canvas.dataset.worldHeight=game.level.height;
-    renderGame(canvas,game,{camera,time:now});
+    prediction.update(elapsed);
+    renderGame(canvas,game,{camera,time:now,view:connected&&!authoritative()?prediction.view(game):null,weapon,teleportPreview:input.teleportPreview});
     $('cameraZoom').textContent=`${Math.round(camera.zoom*100)}%`;
-    const p=game.players[game.currentTurn];
-    $('turnBadge').textContent=game.gameOver?(game.winner===null?'EMPATE':`¡Gana ${game.players[game.winner].name}!`):
-      game.resolving?'Resolviendo disparo…':`${mode.value==='ai'&&game.currentTurn===1?'IA (Rojo)':p.name} · ${Math.max(0,game.turnTimer).toFixed(1)} s`;
+    const p=game.activePlayer;
+    $('turnBadge').textContent=game.gameOver?(game.winner===null?'EMPATE':`¡Gana el equipo ${game.winner===0?'azul':'rojo'}!`):
+      game.introRemaining?'Sorteando quién inicia…':game.escaping?'¡Aléjate! '+Math.ceil(game.turnTimer)+' s':game.players.some(p=>p.transit)?'Teletransportando…':game.resolving?'Resolviendo disparo…':`${mode.value==='ai'&&game.currentTurn===1?'IA (Rojo)':p.name} · ${Math.max(0,game.turnTimer).toFixed(1)} s`;
     $('turnBadge').style.backgroundColor=game.gameOver?(game.winner===null?'#555':game.players[game.winner].color):p.color;
     results.update(game,now,{playing,mode:mode.value,localIndex:mode.value==='pvp'?(session?.playerIndex??0):0,canRestart:mode.value!=='pvp'||!!session?.isHost});
   }
-  $('fireBtn').disabled=!canControl();
-  if(game)hud.update(game,canControl());
+  $('fireBtn').disabled=!canControl()||!game?.canFire||weapon==='teleport';
+  if(game){hud.update(game,canControl());coin.update(game,playing&&(authoritative()||prediction.ready));}
   $('startGame').disabled=loading||!assetsReady||!game;
   $('connect').disabled=loading||!assetsReady||connecting||connected;
   levelSelect.disabled=loading||connecting||(connected&&!session?.isHost);

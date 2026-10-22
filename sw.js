@@ -1,13 +1,14 @@
 // Bump this version when publishing changes to the offline resources.
 const PREFIX='bftma-'+encodeURIComponent(new URL(self.registration.scope).pathname)+'-';
-const CACHE=PREFIX+'v1';
+const CACHE=PREFIX+'v9';
 const FILES=[
   './','index.html','index_pvp.html','manifest.webmanifest',
-  'src/app.js','src/characters/catalog.js','src/network/pvp.js',
-  'src/engine/ai.js','src/engine/combat.js','src/engine/game.js','src/engine/projectiles.js','src/engine/terrain.js',
+  'src/app.js','src/characters/catalog.js','src/network/pvp.js','src/network/prediction.js','src/engine/arsenal.js','src/ui/coin.js',
+  'src/engine/ai.js','src/engine/combat.js','src/engine/game.js','src/engine/projectiles.js','src/engine/terrain.js','src/engine/orbital.js','src/ui/orbital-art.js',
   'src/levels/index.js','src/ui/battle-hud.js','src/ui/camera.js','src/ui/characters.js',
   'src/ui/combat-art.js','src/ui/customization.js','src/ui/game.css','src/ui/input.js',
-  'src/ui/preparation.js','src/ui/renderer.js','src/ui/results.js','src/ui/scenery.js','src/ui/pwa.js',
+  'src/ui/preparation.js','src/ui/renderer.js','src/ui/results.js','src/ui/scenery.js','src/ui/pwa.js','src/ui/weapon-art.js','src/ui/teleport-effects.js','src/ui/weapon-presentation.js',
+  'assets/weapons/arsenal-v1.png','assets/weapons/arsenal-v1.frames.json','assets/weapons/orbital-satellite-v1.png','assets/weapons/orbital-radio-v1.png',
   'assets/characters/raccoon.png','assets/characters/accessories.png','assets/effects/combat-atlas.png',
   'assets/backgrounds/puerto-tampico.png','assets/terrains/fondo1.png',
   'assets/terrains/islas-gemelas-v2.png','assets/terrains/carguero-tampico.png',

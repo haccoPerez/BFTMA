@@ -249,3 +249,40 @@ button:focus-visible{outline:3px solid #b7ecc9;outline-offset:3px;}
   #mainMenu #stylePanel{grid-template-columns:130px minmax(0,1fr) minmax(0,1fr);gap:6px 10px;}
   #mainMenu #stylePreview{width:125px;height:110px!important;}
 }
+/* Three-member teams, full arsenal and right-thumb actions. */
+#mobileControls{grid-template-rows:58px;}
+#mobileControls #btnLeft,#mobileControls #btnRight{grid-row:1;}
+#btnJump.right-jump{display:flex;flex-direction:column;align-items:center;justify-content:center;width:58px;height:58px;gap:2px;border-radius:18px;border:1px solid #afdbd9;background:#25566aef;color:#fff;box-shadow:0 4px 0 #102b3a;touch-action:none;}
+#powerControl{display:grid;grid-template-columns:1fr auto;gap:2px 6px;width:124px;padding:5px 8px;border-radius:9px;background:#10283de8;color:#e4eef0;font-size:10px;pointer-events:auto;}
+#shotPower{grid-column:1 / 3;width:100%;height:24px;accent-color:#d4ee8f;pointer-events:auto;touch-action:none;margin:0;}
+#powerControl.fixed-power{opacity:.55;}
+.weapon-panel{top:72px;bottom:156px;width:min(590px,calc(100vw - 24px));display:flex;flex-direction:column;overflow:hidden;}
+.weapon-heading{margin:0;flex-shrink:0;}.weapon-description{font-size:11px;color:#c4dce6;line-height:1.4;margin:4px 0 10px;min-height:32px;flex-shrink:0;}
+.weapon-grid{grid-template-columns:repeat(5,minmax(0,1fr));overflow-y:auto;gap:6px;padding:2px 3px 8px;overscroll-behavior:contain;}
+.weapon-grid button{min-height:78px;padding:5px 2px;gap:3px;font-size:10px;border-radius:10px;}.weapon-grid canvas{width:48px;height:35px;}
+.arsenal-showcase{grid-template-columns:repeat(4,minmax(0,1fr));}
+.arsenal-showcase>div{display:flex;flex-direction:column;align-items:center;text-align:center;gap:5px;padding:10px;}
+.arsenal-showcase p{font-size:11px;color:#c3d3dd;line-height:1.5;}.arsenal-showcase canvas{height:60px;width:86px;}
+#coinOverlay{position:fixed;inset:0;z-index:65;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;background:#081a2bc9;color:#eef6fa;perspective:700px;pointer-events:auto;}
+#coinDisc{display:flex;align-items:center;justify-content:center;width:100px;height:100px;border-radius:50%;border:8px double #dfac42;background:radial-gradient(circle at 35% 30%,#fff1a6,#f0bf4e 65%,#ac782a);color:var(--coin-team,#ffe19c);text-shadow:0 2px 2px #755320;font-weight:950;font-size:40px;box-shadow:0 8px 25px #0005;}
+#coinResult{font-size:18px;font-weight:800;}
+@media(orientation:landscape) and (max-height:540px){
+  #mobileControls{grid-template-rows:52px;}
+  #btnJump.right-jump{width:52px;height:52px;border-radius:15px;}
+  #combatActions{gap:8px;}#powerControl{width:116px;font-size:9px;}
+  .fire-control{gap:4px;}.weapon-panel{top:62px;bottom:10px;right:calc(max(14px,env(safe-area-inset-right)) + 142px);width:min(480px,calc(100vw - 164px));padding:8px;z-index:20;}
+  .weapon-heading #closeWeapons{height:36px;width:36px;}.weapon-description{font-size:10px;min-height:28px;margin:2px 0 6px;}
+  .weapon-grid button{min-height:65px;font-size:9px;}.weapon-grid canvas{height:29px;width:42px;}
+  .arsenal-showcase{grid-template-columns:repeat(4,minmax(0,1fr));}.arsenal-showcase>div{display:flex;flex-direction:column;align-items:center;text-align:center;padding:8px;gap:4px;}.arsenal-showcase canvas{height:46px;width:70px;}.arsenal-showcase p{font-size:10px;}
+}
+@media(max-width:600px){.arsenal-showcase{grid-template-columns:repeat(2,minmax(0,1fr));}}
+#teamSummary{display:flex;flex-direction:column;gap:2px;padding:5px 9px;border-radius:9px;background:#10283de8;font-size:10px;line-height:14px;color:#e6f3f7;white-space:nowrap;}
+#team0{color:#91d5ff;}#team1{color:#ffb1b8;}
+@media(max-height:540px) and (orientation:landscape){#teamSummary{font-size:9px;padding:3px 7px;line-height:13px;}}
+#currentWeaponArt{width:48px;height:36px;}
+#weaponToggle span{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;}
+@media(orientation:landscape) and (max-height:540px){.weapon-grid canvas{width:60px;height:40px;}}
+#fuseToggle{min-height:38px;width:116px;padding:7px;border:1px solid #e5c47b;border-radius:10px;background:#403b28ed;color:#ffe4a1;font-size:11px;font-weight:800;pointer-events:auto;touch-action:manipulation;}
+#fuseToggle:disabled{opacity:.55;}
+#cancelOrbital{min-height:38px;width:116px;padding:7px;border:1px solid #8acbdd;border-radius:10px;background:#23394ded;color:#d5f5ff;font-size:11px;font-weight:800;pointer-events:auto;touch-action:manipulation;}
+#fireHint{max-width:150px;text-align:center;}

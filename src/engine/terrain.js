@@ -9,6 +9,7 @@ export function createTerrain(level, source) {
  const shadowCtx = shadowCanvas.getContext('2d');
  const terrainData = new Uint8Array(WIDTH * HEIGHT);
  const operations = [];
+ let shadowDirty=false;
  function isSolid(x,y) {
    const ix = Math.floor(x), iy = Math.floor(y);
    return ix >= 0 && iy >= 0 && ix < WIDTH && iy < HEIGHT && terrainData[iy*WIDTH+ix] === 1;
@@ -24,7 +25,7 @@ export function createTerrain(level, source) {
    terrainCtx.clearRect(0,0,WIDTH,HEIGHT); terrainCtx.drawImage(source,0,0,WIDTH,HEIGHT);
    const data = terrainCtx.getImageData(0,0,WIDTH,HEIGHT).data;
    for(let i=0;i<terrainData.length;i++) terrainData[i] = data[i*4+3]>128 ? 1 : 0;
-   operations.length = 0; rebuildShadow();
+   operations.length = 0; rebuildShadow();shadowDirty=false;
  }
     function carveCircle(cx, cy, r) {
       terrainCtx.save();
@@ -107,12 +108,13 @@ export function createTerrain(level, source) {
    if(op.type === 'circle') carveCircle(...op.args);
    else if(op.type === 'tunnel') carveTunnel(...op.args);
    else throw new Error('Operación de terreno desconocida');
-   operations.push(op); rebuildShadow();
+   operations.push(op);shadowDirty=true;
  }
  function sync(history) {
-   if(history.length < operations.length) reset();
+   if(history.length < operations.length||operations.some((op,i)=>history[i]&&JSON.stringify(op)!==JSON.stringify(history[i]))) reset();
    for(let i=operations.length;i<history.length;i++) apply(history[i]);
  }
  reset();
- return {level, terrainCanvas, shadowCanvas, operations, reset, isSolid, calculateNormal, apply, sync};
+ function flush(){if(shadowDirty){rebuildShadow();shadowDirty=false;}}
+ return {level, terrainCanvas, shadowCanvas, operations, reset, isSolid, calculateNormal, apply, sync,flush};
 }

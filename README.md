@@ -6,11 +6,11 @@ Juego de artillería por turnos con terreno destructible. El modo local y el onl
 
 El juego es HTML, CSS y JavaScript vanilla. No requiere Node.js, npm, compilación ni instalar herramientas en el hosting.
 
-Sube `index.html`, `index_pvp.html`, `src/` y `assets/` a la misma carpeta pública, conservando su estructura. Abre la URL de `index.html`. Las referencias son relativas y también permiten publicarlo en una subcarpeta. El hosting debe servir los archivos `.js` como JavaScript y es preferible usar HTTPS para el modo online.
+Sube `index.html`, `index_pvp.html`, `manifest.webmanifest`, `sw.js`, `src/` y `assets/` a la misma carpeta pública, conservando su estructura. Abre la URL de `index.html`. Las referencias son relativas y también permiten publicarlo en una subcarpeta. El hosting debe servir los archivos `.js` como JavaScript y el modo online requiere HTTPS.
 
 El navegador carga los módulos directamente con `<script type="module">`. Para probar localmente puedes usar cualquier servidor estático que ya tengas disponible. Abrir el HTML con `file://` no es compatible con la carga de módulos y lectura del alfa del terreno.
 
-Selecciona modo, terreno, arma y dispara. A/D o flechas para moverse; W, espacio o flecha arriba para saltar. Arrastra el círculo de apuntado hacia atrás, como una resortera: el disparo sale en dirección contraria al arrastre. La distancia del arrastre no cambia la potencia; se dispara con el botón ¡Fuego! También hay botones táctiles. La bazooka describe una parábola con gravedad suave (0.12 por paso de simulación); el limón conserva su gravedad de 0.25 y sus rebotes.
+Selecciona modo, terreno, arma y dispara. A/D o flechas para moverse; W, espacio o flecha arriba para saltar. Arrastra el círculo de apuntado hacia atrás, como una resortera: el disparo sale en dirección contraria al arrastre. La distancia del arrastre cambia la potencia; también hay un deslizador de 15 a 100 %. Se dispara con el botón ¡Fuego! También hay botones táctiles. La bazooka describe una parábola con gravedad suave (0.12 por paso de simulación); el limón conserva su gravedad de 0.25 y sus rebotes.
 
 ## Menú de preparación
 
@@ -20,7 +20,7 @@ Las pestañas **Jugar**, **Personaje** y **Arsenal** separan la preparación en 
 
 Para Local o Contra IA pulsa **Iniciar partida**. Para Online escribe la sala y pulsa **Conectar y jugar** en ambos dispositivos; la partida empieza al encontrar al rival y el mapa del anfitrión se replica al invitado. Puedes cancelar la búsqueda. Los ajustes de partida están en el menú, mientras que el HUD conserva armas, disparo, reinicio y el botón **Menú**.
 
-Volver al menú termina la sesión actual: detiene la simulación, limpia las entradas y cierra la conexión si era online. La siguiente partida empieza con vida y tiempo completos usando las opciones elegidas. Las apariencias y dificultad guardadas se conservan. La sección **Arsenal** es un espacio reservado deshabilitado; las tres armas actuales siguen disponibles para ambos jugadores.
+Volver al menú termina la sesión actual: detiene la simulación, limpia las entradas y cierra la conexión si era online. La siguiente partida empieza con vida y tiempo completos usando las opciones elegidas. Las apariencias y dificultad guardadas se conservan. La sección **Arsenal** explica las 20 opciones disponibles para ambos equipos; por ahora no hay restricciones de inventario.
 
 ## Cámara y capas visuales
 
@@ -40,9 +40,9 @@ La vista es local a cada navegador, independiente del estado PvP. Se limita la r
 
 ## Controles de combate para móvil
 
-El HUD reserva la esquina inferior izquierda para moverse y saltar, con botones táctiles de 58 px. A la derecha quedan el arma equipada y un botón circular de fuego de 88 px. En horizontal de poca altura se compactan manteniendo blancos táctiles amplios. Se respetan las áreas seguras de pantallas con recortes y el alto dinámico del navegador móvil.
+El HUD reserva la esquina inferior izquierda para moverse, con botones táctiles de 58 px. A la derecha quedan el salto, el arma equipada, la potencia y un botón circular de fuego de 88 px. En horizontal de poca altura se compactan manteniendo blancos táctiles amplios. Se respetan las áreas seguras de pantallas con recortes y el alto dinámico del navegador móvil.
 
-Pulsa el icono del arma para abrir una bandeja de tres opciones grandes; elegir una actualiza el icono y el nombre y cierra la bandeja. El botón de fuego indica si es tu turno, si hay un proyectil en vuelo o si terminó la partida. La cabecera solo muestra el turno y los accesos a cámara y opciones. Zoom, vista general y seguimiento están dentro del botón de cámara; Reiniciar y Volver al menú están en Opciones. Solo se abre un panel a la vez, y tocar el campo o pulsar Escape lo cierra.
+Cada jugador conserva su última arma y su tiempo de mecha al alternar los integrantes de su equipo. Pulsa el icono del arma para abrir la bandeja desplazable de 21 opciones; elegir una actualiza el icono, el nombre y la explicación y cierra inmediatamente la bandeja. También cierra con la X, al tocar el campo o al disparar. El botón de fuego indica si es tu turno, si hay un proyectil en vuelo o si terminó la partida. La cabecera muestra el turno, la vida total y supervivientes de cada equipo y los accesos a cámara y opciones. Zoom, vista general y seguimiento están dentro del botón de cámara; Reiniciar y Volver al menú están en Opciones. Solo se abre un panel a la vez, y tocar el campo o pulsar Escape lo cierra.
 
 La lógica de presentación está en `src/ui/battle-hud.js`; las reglas de disparo, turnos, física y teclado se conservan en sus módulos existentes.
 
@@ -79,21 +79,35 @@ Cada definición tiene `id`, `name`, `width`, `height`, `image` y dos `spawns`. 
 
 El nivel **Cangrejo azul** utiliza la imagen original. **Islas gemelas** utiliza `assets/terrains/islas-gemelas-v2.png`: dos islas de arena y roca, una palmera, un puente de madera, terrazas a distintas alturas, pilares para cubrirse y arcos con huecos transparentes. Su mundo mide 1920×1080 frente a los 1280×720 del mapa original; los personajes conservan su tamaño y velocidad en unidades de mundo. Toda la silueta opaca, incluido el puente y la palmera, es terreno destructible. Para añadir otro PNG basta registrar otra definición; no hay que copiar el motor.
 
-`LEVELS.islands.teamSpawns` reserva cinco posiciones distintas por color, distribuidas en las terrazas y ajustadas a la máscara real. Es preparación del mapa para equipos de 3–5 personajes; el motor actual sigue creando un personaje por color desde `spawns`. La selección de personajes y rotación dentro del equipo aún no están implementadas. La imagen plana anterior se conserva como referencia.
+`LEVELS.islands.teamSpawns` define cinco posiciones distintas por color, distribuidas en las terrazas y ajustadas a la máscara real. El motor usa las primeras tres por equipo y rota a los integrantes vivos automáticamente. La imagen plana anterior se conserva como referencia.
 
-**Carguero de Tampico** (`LEVELS.ship`) es un terreno de 1920×1080 inspirado en un barco de contenedores del puerto: cabina, pilas de carga a varias alturas, cubiertas y huecos en el casco. Usa `assets/terrains/carguero-tampico.png` con alfa real; el barco completo es destructible. Tiene cinco posiciones reservadas por equipo y dos apariciones iniciales comprobadas contra la máscara. Está disponible en el menú para local, IA y PvP. Cada definición de nivel incluye también `description`, que el menú muestra sin lógica específica por mapa.
+**Carguero de Tampico** (`LEVELS.ship`) es un terreno de 1920×1080 inspirado en un barco de contenedores del puerto: cabina, pilas de carga a varias alturas, cubiertas y huecos en el casco. Usa `assets/terrains/carguero-tampico.png` con alfa real; el barco completo es destructible. Tiene cinco posiciones por equipo, de las que se usan tres apariciones iniciales comprobadas contra la máscara. Está disponible en el menú para local, IA y PvP. Cada definición de nivel incluye también `description`, que el menú muestra sin lógica específica por mapa.
 
 ## Vida y combate
 
-Cada personaje empieza con 100 de vida, visible en una barra y un contador. Bazooka: máximo 50 de daño y radio de daño 90; limón: máximo 40 y radio 70; tornillo: 35 a cada rival que atraviese su túnel de 220 unidades. Los valores están centralizados en `src/engine/combat.js`. Las explosiones dañan según distancia al borde del personaje, incluyendo al tirador si está cerca; el terreno no bloquea el daño dentro del radio. Los proyectiles explotan al tocar un personaje; el limón conserva los rebotes contra terreno. El tornillo no daña al propio tirador.
+Cada jugador controla un equipo de tres personajes de 100 de vida. Se alternan los equipos azul–rojo y se rota su integrante activo: azul 1, rojo 1, azul 2, rojo 2, azul 3, rojo 3. Los eliminados se omiten. Gana el último equipo con integrantes vivos; perder un personaje no termina la partida. Una moneda animada de 2.5 s muestra qué equipo empieza; el anfitrión realiza un único sorteo compartido por los clientes. Hay 20 s para actuar, y el reloj espera durante la resolución del disparo.
 
-El reloj y las acciones del siguiente jugador esperan mientras se resuelve el proyectil. Al llegar a cero de vida o caer fuera del mapa, el personaje queda eliminado. Gana el último superviviente; si ambos mueren se declara empate. La partida se detiene y se puede usar Reiniciar (en online lo controla el anfitrión). La vida, las eliminaciones y el resultado se replican junto con el resto del estado PvP.
+Las colisiones de proyectiles usan una cápsula que cubre cabeza y torso, coherente con el sprite, y un barrido continuo para que las balas rápidas no atraviesen personajes. El daño directo, las explosiones y el empuje afectan también a aliados. El terreno no bloquea el daño dentro del radio de una explosión. Las tumbas conservan el lugar de cada eliminación.
 
-Los impactos también empujan: las explosiones alejan al personaje del centro con una pequeña elevación y fuerza decreciente según distancia; el tornillo lo desplaza en la dirección de perforación. El impulso se frena gradualmente, respeta paredes y techos y afecta a ambos jugadores aunque no tengan el turno. Sus velocidades se replican en PvP. La intensidad se ajusta con `knockback` en las reglas de cada arma.
+Hay 21 armas y herramientas disponibles, con reglas y ayuda centralizadas en `src/engine/arsenal.js`; consulta [ARSENAL.md](ARSENAL.md). Las explosiones pierden daño con la distancia. El control de potencia va de 15 a 100 % y también responde a cuánto se arrastra la mira. Una guía punteada muestra la parábola inicial; el teletransportador se activa tocando o haciendo clic en un destino y muestra si está bloqueado o fuera de alcance. La potencia no altera armas de alcance fijo, de colocación ni el teletransportador. El salto está a la derecha; el movimiento, a la izquierda.
+
+La dinamita se coloca y da 3 s para huir sin poder disparar otra arma. La mina da 2 s para alejarse y queda armada durante otros turnos. Fragmentación y racimo generan proyectiles secundarios deterministas. Gas, sangrado y congelación persisten en los turnos correspondientes y se replican. Kit médico y teletransporte consumen la acción.
 
 ## Imágenes de armas, tumbas y resultado
 
-`assets/effects/combat-atlas.png` contiene cohete, limón, taladro y lápida con transparencia. El renderizador usa regiones independientes, ajustadas a sus límites alfa, y reutiliza el mismo arte en la bandeja de armas y el menú Arsenal. El cohete gira con su velocidad, el limón rota durante el vuelo y el tornillo, que sigue siendo instantáneo en las reglas, muestra una perforación visual de 0.3 s. Ninguna imagen cambia los radios de impacto o el daño.
+El integrante activo lleva el arma equipada, visible también para el rival en PvP. Los rifles muestran retroceso y fogonazo al disparar, la flecha se usa con un arco cuya cuerda se libera, y el apoyo aéreo muestra una radio. El arma equipada y la configuración de mecha forman parte del estado autorizado.
+
+La granada de fragmentación usa una mecha real, seleccionable antes de lanzar con **Mecha: 2 s → 3 s → 4 s → 2 s**. Los impactos no la detonan: rebota y puede quedarse quieta hasta agotar el tiempo. Un contador sobre el objeto muestra los segundos restantes; cambiar el botón después no afecta a una granada que ya está en vuelo.
+
+El apoyo aéreo comienza lanzando una bengala con dirección y potencia. Donde impacta aparece humo rojo, sin causar daño. La cámara abre una vista completa del mapa y del cielo. El avión cruza de extremo a extremo por encima del terreno y libera cinco bombas al atravesar la zona; las bombas caen desde su posición real. Al responder el apoyo, el personaje activo dispone de tres segundos para moverse y buscar cobertura. La vista general se conserva hasta que termina el bombardeo y después recupera el acercamiento anterior; mover o ampliar manualmente la cámara cancela este encuadre automático. El turno espera a que se resuelvan el avión y sus proyectiles. Bengala, señal, avión y bombas se incluyen en la predicción y las correcciones PvP.
+
+El rayo orbital usa dos turnos: se lanza un marcador con potencia variable que detecta al enemigo más cercano dentro de 140 px, salta y se adhiere a él. Si está vacío emite un fogonazo gris y espera a que entre un enemigo. Desde el siguiente turno propio se puede llamar por radio incluso sin enemigo adherido, atacando la posición del marcador, conservar el marcador mientras se usa otra arma o descartarlo sin gastar acción. La llamada ya confirmada no se cancela: la secuencia dura 4 s, con subida al espacio, carga del satélite, regreso al objetivo y un rayo vertical de 44 px que causa 85 de daño una vez, perfora el terreno y también afecta a aliados. Si el objetivo muere antes de la llamada, el marcador vuelve a esperar. Estado, tiempos y daño se predicen y replican en PvP. El satélite usa el PNG transparente `assets/weapons/orbital-satellite-v1.png`. La radio parabólica usa `assets/weapons/orbital-radio-v1.png`, con el mismo acabado ilustrado del arsenal; permanece erguida y se refleja al cambiar de dirección. La luz animada de carga (halo creciente, partículas convergentes y núcleo blanco) se dibuja en canvas en `src/ui/orbital-art.js`.
+
+El arsenal ilustrado está en `assets/weapons/arsenal-v1.png`, con 20 siluetas independientes. `arsenal-v1.frames.json` describe sus regiones y semillas de selección: `src/ui/weapon-art.js` aísla cada silueta para que los dibujos diagonales no incluyan trozos del vecino. El mismo arte se usa en los menús y en los objetos arrojados; el escudo gira durante el vuelo. El atlas original conserva el cohete y la tumba.
+
+El teletransportador no usa la mira ni el botón de fuego: con el dispositivo equipado, un toque/clic corto en el mapa activa la acción. Un arrastre mueve la cámara y la pinza sigue funcionando. El anfitrión comprueba rango, límites, suelo y ocupación; si el destino es inválido no se consume turno. La animación dura 0.9 s: desaparición en líneas y partículas, cambio de posición a los 0.4 s y recomposición en el destino. Su estado se replica y predice como el resto del combate. La cámara mantiene el encuadre durante la transición y se respeta la preferencia de movimiento reducido.
+
+`assets/effects/combat-atlas.png` contiene cohete, limón, taladro y lápida con transparencia. El renderizador conserva el cohete y la lápida de ese atlas, y usa las nuevas ilustraciones para inventario y objetos arrojados. El cohete gira con su velocidad, el escudo rota durante el vuelo y el tornillo, que sigue siendo instantáneo en las reglas, muestra una perforación visual de 0.3 s. Ninguna imagen cambia los radios de impacto o el daño.
 
 Al morir se guarda `player.death` con posición y causa. Una lápida pequeña reemplaza al personaje; si hay suelo debajo se apoya en él y, en una caída fuera del mundo, utiliza `lastGrounded`. Es decorativa, no bloquea disparos ni movimiento, se replica con el estado y desaparece al reiniciar. `lastShot` permite sincronizar también el efecto visual del tornillo.
 
@@ -123,17 +137,17 @@ Abre **Apariencia** para elegir accesorio o dejarlo vacío, escribir un apodo de
 
 Las preferencias locales y el perfil online se guardan por separado en `localStorage` bajo `bftma.appearance.v1`. Si el almacenamiento no está disponible se puede seguir jugando y personalizando durante la sesión. Los reinicios y cambios de nivel conservan la elección.
 
-En PvP se envían solo identificadores de personaje/accesorio y apodo; cada navegador carga los mismos PNG estáticos. El anfitrión valida y asigna la apariencia al índice del remitente, independientemente de quién tenga el turno. El invitado reenvía su elección hasta verla confirmada en el estado replicado. No puede cambiar la apariencia del rival mediante el mensaje. Ambos clientes deben tener esta versión (sala interna `bftma-shared-engine-v2`).
+En PvP se envían solo identificadores de personaje/accesorio y apodo; cada navegador carga los mismos PNG estáticos. El anfitrión valida y asigna la apariencia al índice del remitente, independientemente de quién tenga el turno. El invitado reenvía su elección hasta verla confirmada en el estado replicado. No puede cambiar la apariencia del rival mediante el mensaje. Ambos clientes deben tener esta versión (sala interna `bftma-teams-arsenal-v9`). La apariencia se aplica a los tres integrantes de cada equipo.
 
 ## PvP
 
 Abre el modo online en dos navegadores y usa la misma sala. Requiere Internet para cargar Trystero y conectar WebRTC. Para jugar entre dispositivos, ambos deben abrir una URL HTTPS con un certificado válido y reconocido por sus navegadores: HTTP por IP local no expone `crypto.subtle`, necesario para la señalización cifrada. `http://localhost` es una excepción del navegador útil para pruebas en una misma PC. El juego detecta esta limitación antes de intentar conectar. Basta un hosting estático con HTTPS; no requiere instalar Node en el servidor.
 
-El menor ID de peer es P1 y anfitrión; decide el terreno y los reinicios. El invitado envía entradas y el anfitrión ejecuta el mismo motor utilizado en local. Envía estados a 20 Hz con el historial de destrucción; el invitado replica jugadores, proyectiles y terreno sin simularlos por separado.
+El menor ID de peer es P1 y anfitrión; decide el terreno y los reinicios. El invitado envía entradas y el anfitrión ejecuta el mismo motor utilizado en local. Ambos clientes ejecutan el mismo motor a 60 pasos por segundo. El anfitrión envía correcciones a 10 Hz; el invitado predice inmediatamente sus entradas y los proyectiles, mide latencia, repite solo comandos sin confirmar y concilia con el estado autorizado. Los pequeños ajustes visuales se suavizan; los teletransportes y cambios grandes se aplican directamente. El envío conserva solo la corrección más reciente cuando el canal está ocupado.
 
 Los comandos incluyen turno y generación de partida para rechazar acciones antiguas. Los estados tienen secuencia creciente, incluso después de reiniciar o cambiar de mapa. Se filtran mensajes por rival y se cierra la sesión al desconectarse. No existe reconexión automática; vuelve a conectar ambos dispositivos para empezar otra partida.
 
-Limitaciones: el anfitrión es de confianza, la réplica no interpola y reenvía el historial completo de destrucción (adecuado para el prototipo; conviene compactarlo para partidas largas). Trystero se carga desde el CDN con versión fijada a 0.26.0. Todavía hay un personaje por equipo.
+Limitaciones: el anfitrión es de confianza y sigue enviando el historial completo de operaciones de destrucción (descriptores, no texturas). En partidas largas convendrá compactarlo. La predicción reduce la espera visual, pero las decisiones finales de daño y turno pertenecen al anfitrión. Trystero se carga desde el CDN con versión fijada a 0.26.0.
 
 ## Instalar como app (PWA)
 
@@ -143,7 +157,7 @@ En Android/Chrome, pulsa **Instalar** en el menú del juego o usa la opción de 
 
 Después de la primera carga y de terminar la descarga de los recursos, el service worker permite jugar local y contra IA sin Internet. El PvP requiere Internet y HTTPS. En HTTP por IP local, el juego sigue funcionando pero el navegador no habilita instalación/caché segura ni el cifrado del PvP.
 
-Al publicar cambios, incrementa `v1` en `sw.js`. El worker nuevo espera a que se cierren las ventanas del juego antes de activarse, para evitar una recarga durante una partida. Al volver a abrirlo se usa la actualización. Los cambios de recursos también se consultan por red al estar conectado.
+Al publicar cambios, incrementa la versión de caché (`v9` actualmente) en `sw.js`. El worker nuevo espera a que se cierren las ventanas del juego antes de activarse, para evitar una recarga durante una partida. Al volver a abrirlo se usa la actualización. Los cambios de recursos también se consultan por red al estar conectado.
 
 Prueba opcional de PWA: `node --test tests/pwa.test.cjs`. Verifica rutas de repositorio, iconos, controles de pantalla completa y partidas local/IA sin conexión.
 
@@ -155,8 +169,7 @@ La orientación principal del juego en móviles es horizontal (landscape). El me
 
 Para ejecutar las pruebas automatizadas opcionales, instala Playwright desde `tools/` y ejecuta `npm test` allí. Si Playwright está en otro directorio, define `BFTMA_NODE_MODULES` con la ruta de su `node_modules`. Para usar Chrome instalado, define `BFTMA_BROWSER_CHANNEL=chrome`.
 
-Las pruebas cubren carga de interfaz, selección y reinicio del segundo nivel, aislamiento de terreno, destrucción, proyectiles, expiración de turno, rechazo de comandos fuera de turno y réplica de estado. También abren dos pestañas con un transporte local de prueba que sustituye únicamente a Trystero para verificar el adaptador PvP: conexión, cambio de nivel, disparos alternados, reinicio y desconexión. La conectividad WebRTC entre redes reales requiere una prueba manual con dos dispositivos.
+Las pruebas de `tests/game.test.cjs` cubren los 20 efectos, impactos en cabeza, potencia, rotación y victoria por equipo, planificación de IA, réplica determinista y corrección de cráteres predichos. `tests/pvp.test.cjs` abre dos pestañas con 60 ms de retraso por trayecto para comprobar predicción, conciliación de movimiento/proyectiles, sorteo compartido, reinicio y desconexión. `tests/camera.test.cjs` verifica el seguimiento y `tests/pwa.test.cjs` el funcionamiento sin conexión bajo una ruta de repositorio. La conectividad WebRTC entre redes reales requiere una prueba manual con dos dispositivos.
 
 `ANALISIS_Y_GDD_GODOT.md` conserva la propuesta histórica previa a esta reorganización; su inventario de archivos ya no describe la estructura actual.
-#   B F T M A  
- 
+# BFTMA

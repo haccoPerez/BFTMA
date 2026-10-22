@@ -1,0 +1,31 @@
+// One source for rules, help text, AI and the two arsenal views.
+export const ARSENAL=Object.freeze({
+  bazooka:{name:'Bazooka',category:'Explosivos',kind:'projectile',maximum:50,radius:90,crater:50,knockback:4,speed:12,gravity:.12,color:'#e4ab57',help:'Cohete en parábola. Explota al tocar un personaje o el terreno. Daño máximo 50.',power:true},
+  screw:{name:'Tornillo',category:'Perforación',kind:'tunnel',maximum:35,radius:10,range:220,knockback:2.5,color:'#c4d4df',help:'Perfora 220 px de terreno y golpea a todos los personajes de su trayectoria. 35 de daño.'},
+  lemon:{name:'Limón',category:'Explosivos',kind:'projectile',maximum:40,radius:70,crater:30,knockback:3,speed:12,gravity:.25,bounces:2,fuse:180,color:'#e4db5b',help:'Granada que rebota dos veces. Detona al impactar después o a los 3 s. Hasta 40 de daño.',power:true},
+  sniper:{name:'Francotirador',category:'Precisión',kind:'ray',maximum:75,radius:2,range:1600,knockback:1,color:'#b7a78e',help:'Disparo instantáneo y preciso: 75 de daño al primer personaje. Las paredes lo detienen.'},
+  laser:{name:'Láser',category:'Perforación',kind:'beam',maximum:35,radius:4,range:950,knockback:.5,color:'#ff667f',help:'Rayo que atraviesa personajes y abre un túnel estrecho. 35 de daño por objetivo.'},
+  frag:{name:'Fragmentación',category:'Explosivos',kind:'projectile',maximum:28,radius:65,crater:32,knockback:2.5,speed:11,gravity:.25,bounces:1,fuse:120,color:'#97ac72',help:'Mecha ajustable de 2, 3 o 4 s. Rebota sin detonar al impactar; muestra su cuenta atrás. Explosión de hasta 28 y 8 fragmentos de hasta 10.',power:true},
+  dynamite:{name:'Dinamita',category:'Colocación',kind:'placed',maximum:80,radius:135,crater:80,knockback:5,fuse:180,color:'#ed775e',help:'Se coloca junto a tus pies, no se lanza. Tienes 3 s para huir antes de la explosión de hasta 80.'},
+  punch:{name:'Puñetazo',category:'Cuerpo a cuerpo',kind:'melee',maximum:30,radius:20,range:65,knockback:6,color:'#efbd8c',help:'Golpe a corta distancia: 30 de daño y gran empujón. No destruye terreno.'},
+  airstrike:{name:'Apoyo aéreo',category:'Apoyo',kind:'airstrike',maximum:28,radius:60,crater:32,knockback:2.5,speed:10,gravity:.22,color:'#84bac9',help:'Lanza una bengala. Al caer deja humo rojo y llama a un avión que suelta cinco bombas sobre esa zona. Hasta 28 por bomba.',power:true},
+  machinegun:{name:'Metralleta',category:'Balas',kind:'burst',maximum:8,radius:2,crater:2,range:950,knockback:.3,speed:22,gravity:0,color:'#97aaa7',help:'Ráfaga de 8 balas, 8 de daño cada una. La dispersión y las paredes pueden interceptarlas.'},
+  gas:{name:'Gas',category:'Control',kind:'projectile',maximum:6,radius:45,crater:8,knockback:.5,speed:10,gravity:.25,bounces:1,fuse:120,color:'#a0d96a',help:'Crea una nube de radio 85. Inflige 5 de daño por segundo durante 4 cambios de turno; afecta a aliados.',power:true},
+  shotgun:{name:'Escopeta',category:'Balas',kind:'shotgun',maximum:10,radius:2,crater:2,range:350,knockback:.7,speed:21,gravity:.025,color:'#c99770',help:'Siete perdigones en abanico, hasta 10 cada uno. Alcance corto: 350 px.'},
+  arrow:{name:'Flecha',category:'Precisión',kind:'projectile',maximum:38,radius:2,crater:0,knockback:1,speed:14,gravity:.18,color:'#d1ba7e',help:'Flecha en parábola: 38 de daño directo y sangrado de 6 en los dos próximos turnos de su equipo.',power:true},
+  disc:{name:'Escudo',category:'Rebotes',kind:'projectile',maximum:22,radius:8,crater:0,knockback:1.5,speed:13,gravity:.035,bounces:5,color:'#ee6477',help:'Escudo arrojadizo que rebota cinco veces en paredes o personajes. 22 por golpe; puede regresar hacia ti.',power:true},
+  teleport:{name:'Teletransportador',category:'Utilidad',kind:'teleport',maximum:0,radius:0,range:650,knockback:0,color:'#8ce8ff',help:'Toca o haz clic en el destino para teletransportarte entre partículas. Alcance: 650 px. Arrastrar mueve la cámara. Consume turno si el destino es válido.'},
+  medkit:{name:'Kit médico',category:'Utilidad',kind:'heal',maximum:0,radius:0,knockback:0,color:'#ee969e',help:'Recupera 35 de vida del personaje activo, sin superar 100. Consume turno; no revive.'},
+  orbital:{name:'Rayo orbital',category:'Apoyo',kind:'orbital',maximum:85,radius:22,crater:0,knockback:3,speed:11,gravity:.22,lockRange:140,beamWidth:44,color:'#9feaff',help:'Dos turnos: lanza un marcador que salta al enemigo más cercano a 140 px. En tu siguiente turno, llama al satélite incluso sin enemigo fijado: golpea la posición del marcador con un rayo de 44 px, 85 de daño y perforación de terreno. Puedes conservarlo, elegir otra arma o descartarlo antes de llamar.',power:true},
+  mortar:{name:'Mortero',category:'Explosivos',kind:'projectile',maximum:65,radius:100,crater:65,knockback:4.5,speed:17,gravity:.32,color:'#9da5bb',help:'Proyectil de largo alcance y arco pronunciado. Explosión de hasta 65 y gran cráter.',power:true},
+  cluster:{name:'Racimo',category:'Explosivos',kind:'projectile',maximum:24,radius:45,crater:22,knockback:2,speed:11,gravity:.22,color:'#d29a71',help:'Se divide al empezar a caer en cinco minibombas, cada una con hasta 24 de daño.',power:true},
+  mine:{name:'Mina',category:'Colocación',kind:'mine',maximum:65,radius:85,crater:45,knockback:4,color:'#dcb86d',help:'Se coloca a tus pies. Tienes 2 s para alejarte; se arma y explota si alguien se acerca a 45 px. Dura 8 turnos.'},
+  ice:{name:'Criogénico',category:'Control',kind:'projectile',maximum:18,radius:65,crater:15,knockback:1,speed:11,gravity:.14,color:'#8bddf6',help:'Explosión de hasta 18. Reduce a la mitad el movimiento y el salto durante los dos próximos turnos del equipo.',power:true}
+});
+for(const rule of Object.values(ARSENAL))Object.freeze(rule);
+export const WEAPONS=Object.freeze(Object.keys(ARSENAL));
+export const FRAGMENT=Object.freeze({maximum:10,radius:23,crater:8,knockback:.6,speed:5,gravity:.2});
+export const FLARE=Object.freeze({maximum:0,radius:0,crater:0,knockback:0,speed:10,gravity:.22});
+export const weaponRule=id=>id==='fragment'?FRAGMENT:id==='flare'?FLARE:ARSENAL[id]||ARSENAL.bazooka;
+export const clampPower=value=>Number.isFinite(value)?Math.max(.15,Math.min(1,value)):1;
+export const shotSpeed=(id,power=1)=>(weaponRule(id).speed||12)*(.18+.82*clampPower(power));

@@ -1,10 +1,10 @@
 import {getPivotCoords} from './renderer.js';
-export function bindInput(canvas,{getGame,canControl,send,getCamera=()=>null,isPlaying=()=>true}) {
+export function bindInput(canvas,{getGame,canControl,send,getCamera=()=>null,isPlaying=()=>true,getWeapon=()=>null}) {
  const keys={left:false,right:false,jump:false};
- let dragging=false, dragTurn=null;
+ let dragging=false, dragTurn=null,tapIntent=null,teleportPreview=null;
  const emit=()=>send({type:'input',...keys});
  const pointers=new Map();let panning=null,pinch=null;
- function clear(){keys.left=keys.right=keys.jump=false;dragging=false;pointers.clear();panning=null;pinch=null;const camera=getCamera();if(camera)camera.hold=false;emit();}
+ function clear(){keys.left=keys.right=keys.jump=false;dragging=false;tapIntent=null;teleportPreview=null;pointers.clear();panning=null;pinch=null;const camera=getCamera();if(camera)camera.hold=false;emit();}
  const mapping={a:'left',ArrowLeft:'left',d:'right',ArrowRight:'right',w:'jump',' ':'jump',ArrowUp:'jump'};
  window.addEventListener('keydown',e=>{
    const key=mapping[e.key]; if(!key || e.target.matches('input,select,textarea'))return;
@@ -48,11 +48,15 @@ export function bindInput(canvas,{getGame,canControl,send,getCamera=()=>null,isP
    const camera=getCamera();
    pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
    if(camera&&pointers.size===2){
-     dragging=false;panning=null;camera.hold=true;
+     dragging=false;tapIntent=null;teleportPreview=null;panning=null;camera.hold=true;
      const [a,b]=[...pointers.values()];pinch={distance:Math.hypot(a.x-b.x,a.y-b.y),mid:{x:(a.x+b.x)/2,y:(a.y+b.y)/2}};
      canvas.setPointerCapture(e.pointerId);return;
    }
-   const game=getGame(), p=game.players[game.currentTurn],pos=getCanvasCoords(e),pivot=getPivotCoords(p);
+   const game=getGame(), p=game.activePlayer||game.players[game.currentTurn],pos=getCanvasCoords(e),pivot=getPivotCoords(p);
+   if(getWeapon()==='teleport'&&canControl()&&game.canFire){
+     tapIntent={id:e.pointerId,x:e.clientX,y:e.clientY,turn:game.turnId,game};teleportPreview=pos;
+     if(camera)camera.hold=true;canvas.setPointerCapture(e.pointerId);return;
+   }
    if(!canControl()||Math.hypot(pos.x-pivot.x,pos.y-pivot.y)>p.pivotRadius+18){
      if(camera){panning={id:e.pointerId,x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);}return;
    }
@@ -61,22 +65,33 @@ export function bindInput(canvas,{getGame,canControl,send,getCamera=()=>null,isP
  });
  canvas.addEventListener('pointermove',e=>{
    const camera=getCamera();if(pointers.has(e.pointerId))pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+   if(tapIntent?.id===e.pointerId){
+     if(Math.hypot(e.clientX-tapIntent.x,e.clientY-tapIntent.y)>8){
+       if(camera)panning={id:e.pointerId,x:tapIntent.x,y:tapIntent.y};tapIntent=null;teleportPreview=null;
+     }else{teleportPreview=getCanvasCoords(e);return;}
+   }
    if(camera&&pinch&&pointers.size>=2){
      const [a,b]=[...pointers.values()],distance=Math.hypot(a.x-b.x,a.y-b.y),mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2},rect=canvas.getBoundingClientRect();
      if(pinch.distance>0)camera.zoomAt(distance/pinch.distance,mid.x-rect.left,mid.y-rect.top);
      camera.pan(mid.x-pinch.mid.x,mid.y-pinch.mid.y);pinch={distance,mid};return;
    }
    if(camera&&panning?.id===e.pointerId){camera.pan(e.clientX-panning.x,e.clientY-panning.y);panning={id:e.pointerId,x:e.clientX,y:e.clientY};return;}
+   if(isPlaying()&&getWeapon()==='teleport'&&canControl()&&getGame()?.canFire){teleportPreview=getCanvasCoords(e);return;}
    const game=getGame();if(!dragging||!canControl()||dragTurn!==game.turnId)return;
-   const p=game.players[game.currentTurn],pos=getCanvasCoords(e);
+   const p=game.activePlayer||game.players[game.currentTurn],pos=getCanvasCoords(e);
    // The handle is behind the player: pull back to aim in the opposite direction.
    // This matches getPivotCoords, so moving the pointer never flips the handle.
-   if(Math.hypot(pos.x-p.x,pos.y-p.y)>8)send({type:'aim',angle:Math.atan2(p.y-pos.y,p.x-pos.x)});
+   const distance=Math.hypot(pos.x-p.x,pos.y-pos.y);
+   if(distance>8)send({type:'aim',angle:Math.atan2(p.y-pos.y,p.x-pos.x),power:Math.max(.15,Math.min(1,distance/160))});
  });
  for(const event of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(event,e=>{
+   if(event==='pointerup'&&tapIntent?.id===e.pointerId&&tapIntent.game===getGame()&&tapIntent.turn===getGame().turnId&&getWeapon()==='teleport'&&canControl()&&Math.hypot(e.clientX-tapIntent.x,e.clientY-tapIntent.y)<=8){
+     teleportPreview=getCanvasCoords(e);send({type:'fire',weapon:'teleport',target:teleportPreview});
+   }
+   tapIntent=null;
    pointers.delete(e.pointerId);dragging=false;panning=null;pinch=null;
    const camera=getCamera();if(camera)camera.hold=false;
  });
  canvas.addEventListener('wheel',e=>{const camera=getCamera();if(!camera||!isPlaying())return;e.preventDefault();const rect=canvas.getBoundingClientRect();camera.zoomAt(Math.exp(-e.deltaY*.001),e.clientX-rect.left,e.clientY-rect.top);},{passive:false});
- return {clear};
+ return {clear,get teleportPreview(){return teleportPreview;}};
 }

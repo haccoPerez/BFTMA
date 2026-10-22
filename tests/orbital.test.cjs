@@ -1,0 +1,85 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const {spawn}=require('node:child_process');
+const path=require('node:path');
+const {createRequire}=require('node:module');
+const runtime=process.env.BFTMA_NODE_MODULES?createRequire(path.join(process.env.BFTMA_NODE_MODULES,'__tests.cjs')):createRequire(path.resolve(__dirname,'../tools/package.json'));
+const {chromium}=runtime('playwright');
+test('orbital marker: two turns, waiting, attachment, cancellation, satellite, damage and deterministic replication',async()=>{
+ const server=spawn(process.execPath,['tools/server.cjs'],{cwd:path.resolve(__dirname,'..'),stdio:'pipe'});let browser;
+ try{
+  await new Promise((resolve,reject)=>{server.stdout.once('data',resolve);server.once('error',reject);});
+  browser=await chromium.launch({headless:true,...(process.env.BFTMA_BROWSER_CHANNEL?{channel:process.env.BFTMA_BROWSER_CHANNEL}:{})});
+  const page=await browser.newPage({viewport:{width:844,height:390}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('http://localhost:8080');await page.waitForFunction(()=>!document.getElementById('startGame').disabled);
+  const result=await page.evaluate(async()=>{
+   const {createGame}=await import('/src/engine/game.js');
+   const ensure=(value,message)=>{if(!value)throw Error(message);};
+   const source=document.createElement('canvas');source.width=1200;source.height=900;source.getContext('2d').fillRect(0,500,1200,400);
+   const level={id:'orbital-fixture',width:1200,height:900,spawns:[{x:150,y:450},{x:800,y:450}]};
+   const run=(g,n)=>{for(let i=0;i<n;i++)g.step();};
+   const make=()=>{const g=createGame(level,source);run(g,40);return g;};
+   const command=(g,type,extra={})=>g.command(g.currentTurn,{type,turnId:g.turnId,...extra});
+   const g=make(),target=g.players[1];target.x=245;g.activePlayer.angle=0;
+   ensure(command(g,'fire',{weapon:'orbital'}),'Marker launch rejected');
+   run(g,90);const m=g.orbital.markers[0];
+   ensure(g.currentTurn===1&&m?.attached&&m.targetId===target.id,'Marker did not jump and end first turn');
+   ensure(target.health===100,'Marker inflicted damage');
+   ensure(!g.command(0,{type:'fire',weapon:'orbital',turnId:g.turnId}),'Orbital fired during rival turn');
+   ensure(!command(g,'cancelOrbital'),'Rival cancelled marker');
+   target.x+=70;g.step();ensure(m.x===target.x,'Attached marker does not follow target');
+   command(g,'fire',{weapon:'medkit'});run(g,31);ensure(g.currentTurn===0&&g.orbitalReady(0),'Radio unavailable next turn');
+   command(g,'equip',{weapon:'sniper'});ensure(g.orbital.markers.length===1,'Choosing another weapon consumes marker');
+   ensure(command(g,'fire',{weapon:'orbital'}),'Radio call rejected');
+   ensure(!g.projectiles.length&&g.orbital.strike,'Radio threw another marker');
+   ensure(!command(g,'cancelOrbital'),'Committed strike is cancellable');
+   const copy=make();copy.restore(g.snapshot());
+   run(g,100);run(copy,100);ensure(JSON.stringify(copy.snapshot())===JSON.stringify(g.snapshot()),'Charge replication differs');
+   window.orbitalPreview={level,source,state:g.snapshot()};
+   run(g,79);ensure(target.health===100,'Beam inflicted damage before returning to scene');
+   run(g,1);ensure(target.health===15,'Beam does not inflict exactly 85 damage');
+   ensure(!g.terrain.isSolid(target.x,700),'Beam does not cut terrain');
+   const health=target.health;run(g,10);ensure(target.health===health,'Beam applies damage repeatedly');
+   run(g,80);run(copy,170);ensure(JSON.stringify(copy.snapshot())===JSON.stringify(g.snapshot()),'Impact replication differs');
+   const waiting=make();waiting.activePlayer.angle=.7;waiting.activePlayer.power=.15;
+   command(waiting,'fire',{weapon:'orbital'});run(waiting,60);
+   const idle=waiting.orbital.markers[0];ensure(idle&&!idle.targetId&&idle.grey,'Empty marker has no grey fizzle');
+   ensure(!waiting.orbitalReady(0),'Marker bypasses the second-turn requirement');
+   const before=waiting.orbital.markers.length;
+   command(waiting,'fire',{weapon:'medkit'});run(waiting,31);
+   ensure(waiting.orbitalReady(0),'Empty marker cannot be called on the following own turn');
+   const groundStrike=make();groundStrike.restore(waiting.snapshot());
+   ensure(command(groundStrike,'fire',{weapon:'orbital'}),'Cannot fire without a marked enemy');
+   const groundX=groundStrike.orbital.strike.x;
+   ensure(groundStrike.orbital.strike.targetId===null&&groundX===idle.x,'Unattached strike does not aim at the marker');
+   const covered=groundStrike.players.find(p=>p.team===1);covered.x=groundX;covered.y=700;covered.vx=covered.vy=0;
+   ensure(groundStrike.terrain.isSolid(covered.x,covered.y-30),'Covered target fixture has no overhead terrain');
+   const groundCopy=make();groundCopy.restore(groundStrike.snapshot());
+   run(groundStrike,180);run(groundCopy,180);
+   ensure(covered.health===15,'An unmarked enemy behind terrain is not hit by the vertical beam');
+   for(const y of [510,650,850]){
+     ensure(!groundStrike.terrain.isSolid(groundX,y),'Unmarked beam fails to cut the full terrain column');
+     ensure(groundStrike.terrain.isSolid(groundX+30,y),'Beam destroys terrain outside its narrow column');
+   }
+   ensure(JSON.stringify(groundStrike.snapshot())===JSON.stringify(groundCopy.snapshot()),'Unmarked terrain cut does not replicate');
+   const near=waiting.players.find(p=>p.team===1);near.x=idle.x+50;near.y=idle.y;
+   const far=waiting.players.filter(p=>p.team===1)[1];far.x=idle.x+110;far.y=idle.y;
+   run(waiting,25);ensure(idle.attached&&idle.targetId===near.id,'Marker did not acquire nearest approaching enemy');
+   ensure(command(waiting,'cancelOrbital')&&waiting.canFire&&waiting.orbital.markers.length===before-1,'Cancel consumes turn or leaves marker');
+   ensure(command(waiting,'fire',{weapon:'orbital'}),'Cannot launch a replacement marker');
+   return {damage:85};
+  });
+  assert.equal(result.damage,85);
+  await page.evaluate(async()=>{
+   const {createGame}=await import('/src/engine/game.js'),{createCamera}=await import('/src/ui/camera.js'),{renderGame}=await import('/src/ui/renderer.js');
+   const frame=window.orbitalPreview,g=createGame(frame.level,frame.source);g.restore(frame.state);
+   const canvas=document.createElement('canvas');canvas.id='orbital-preview';canvas.width=844;canvas.height=390;canvas.style.cssText='position:fixed;inset:0;z-index:1000;width:100vw;height:100vh';document.body.append(canvas);
+   const camera=createCamera();camera.resize(844,390);camera.update(g,1/60);renderGame(canvas,g,{camera});
+   window.orbitalRenderer={g,camera,canvas,renderGame};
+  });
+  await page.screenshot({path:'tests/orbital-charge-preview.png'});
+  await page.evaluate(()=>{const {g,camera,canvas,renderGame}=window.orbitalRenderer;for(let i=0;i<85;i++){g.step();camera.resize(844,390);camera.update(g,1/60);}renderGame(canvas,g,{camera});});
+  await page.screenshot({path:'tests/orbital-impact-preview.png'});
+  assert.deepEqual(errors,[]);
+ }finally{await browser?.close();server.kill();}
+});

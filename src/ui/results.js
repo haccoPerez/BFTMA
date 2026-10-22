@@ -1,9 +1,9 @@
 import {drawCharacter} from './characters.js';
 export function resultPresentation(game,mode,localIndex=0){
   if(game.winner===null)return {kind:'draw',title:'¡Empate!',subtitle:'Nadie se quedó con la isla. ¿Otra ronda?',playerIndex:localIndex};
-  const winner=game.players[game.winner],isLocal=mode==='local',won=isLocal||game.winner===localIndex;
+  const winner=game.players.find(p=>(p.team??game.players.indexOf(p))===game.winner&&p.alive)||game.players[game.winner],isLocal=mode==='local',won=isLocal||game.winner===localIndex;
   return {kind:won?'win':'lose',title:isLocal?`¡Victoria ${game.winner===0?'azul':'roja'}!`:won?'¡Ganaste!':'Esta vez no…',
-    subtitle:isLocal?`${winner.appearance?.nickname||winner.name} se queda con el campo de batalla.`:won?'Buen tiro. El puerto es tuyo.':'Reagrúpate, ajusta la mira y vuelve al combate.',playerIndex:won?game.winner:localIndex};
+    subtitle:isLocal?`${winner.appearance?.nickname||winner.name} se queda con el campo de batalla.`:won?'Buen tiro. El puerto es tuyo.':'Reagrúpate, ajusta la mira y vuelve al combate.',playerIndex:game.players.indexOf(won?winner:game.players.find(p=>(p.team??game.players.indexOf(p))===localIndex))};
 }
 export function bindResults({onMenu,onRestart}){
   const $=id=>document.getElementById(id);let previous=null,start=0,opened=false;
@@ -22,7 +22,7 @@ export function bindResults({onMenu,onRestart}){
     $('resultOverlay').dataset.result=result.kind;$('resultTitle').textContent=result.title;$('resultSubtitle').textContent=result.subtitle;
     $('resultEyebrow').textContent=result.kind==='win'?'MISIÓN CUMPLIDA':result.kind==='lose'?'LA BATALLA CONTINÚA':'HASTA LA ÚLTIMA EXPLOSIÓN';
     $('resultRestart').hidden=!canRestart;$('resultHostHint').hidden=canRestart;
-    $('resultStats').textContent=game.players.map(p=>`P${p.id} ${p.appearance?.nickname||''} · ${p.health}/${p.maxHealth}`).join('   /   ');
+    $('resultStats').textContent=[0,1].map(team=>{const members=game.players.filter((p,i)=>(p.team??i)===team);return `P${team+1} · ${members.filter(p=>p.alive).length}/${members.length} vivos · ${members.reduce((sum,p)=>sum+p.health,0)} PV`;}).join(' / ');
     const canvas=$('resultCharacter'),ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);
     ctx.save();ctx.translate(canvas.width/2,canvas.height-30);ctx.scale(3.4,3.4);
     drawCharacter(ctx,{...player,x:0,y:0,angle:0,hurtTimer:0});ctx.restore();

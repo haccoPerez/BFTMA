@@ -1,6 +1,14 @@
 import {LEVELS} from '../levels/index.js';
+import {ARSENAL} from '../engine/arsenal.js';
 export function bindPreparation(){
   const menu=document.getElementById('mainMenu'),levelSelect=document.getElementById('level');
+  const showcase=document.querySelector('.arsenal-showcase');
+  for(const [id,rule] of Object.entries(ARSENAL)){
+    const card=document.createElement('div'),canvas=document.createElement('canvas'),name=document.createElement('strong'),category=document.createElement('span'),description=document.createElement('p');
+    canvas.width=100;canvas.height=70;canvas.dataset.combatArt=id;
+    name.textContent=rule.name;category.textContent=rule.category;description.textContent=rule.help;
+    card.append(canvas,name,category,description);showcase.append(card);
+  }
   function tab(name){
     menu.dataset.tab=name;
     for(const button of document.querySelectorAll('[data-setup-tab]')){
@@ -21,7 +29,7 @@ export function bindPreparation(){
       const active=button.dataset.levelCard===levelSelect.value;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));
     }
     const mode=document.getElementById('mode').value;
-    document.getElementById('setupSummary').textContent=`${mode==='ai'?'Contra IA':mode==='pvp'?'Online PvP':'Local'} · ${LEVELS[levelSelect.value]?.name||''}`;
+    document.getElementById('setupSummary').textContent=`${mode==='ai'?'Contra IA':mode==='pvp'?'Online PvP':'Local'} · 3 vs 3 · ${LEVELS[levelSelect.value]?.name||''}`;
   }
   tab('play');refresh();return {refresh,tab};
 }

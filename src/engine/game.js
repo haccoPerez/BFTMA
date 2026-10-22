@@ -4,6 +4,8 @@ import {MAX_HEALTH,damagePlayer,explosionDamage,tunnelDamage,hitsCharacter,knock
 import {ARSENAL,WEAPONS,weaponRule,shotSpeed,clampPower} from './arsenal.js';
 import {normalizeAppearance} from '../characters/catalog.js';
 import {createOrbitalSystem} from './orbital.js';
+import {gasState,hasGasMask} from './gas.js';
+import {firingAngle} from './aim.js';
 export {WEAPONS} from './arsenal.js';
 export {PROJECTILE_GRAVITY} from './projectiles.js';
 export const FIXED_STEP=1/60;
@@ -49,6 +51,7 @@ export function createGame(level,source,{firstTeam=0,introTicks=0,teamSize=3}={}
    for(const p of players.filter(p=>p.team===currentTurn&&p.alive)){
      if(p.bleedTurns>0){damagePlayer(p,6,'bleed');p.bleedTurns--;effect('bleed',p.x,p.y-20);}
      if(p.freezeTurns>0)p.freezeTurns--;
+     if(p.tremorTurns>0)p.tremorTurns--;
    }
    updateOutcome();
  }
@@ -56,7 +59,7 @@ export function createGame(level,source,{firstTeam=0,introTicks=0,teamSize=3}={}
  function explode(x,y,weapon,directHit=null){
    const rule=weaponRule(weapon);carveCircle(x,y,rule.crater||0);explosionDamage(players,x,y,weapon,directHit);
    effect('explosion',x,y,{radius:rule.radius||25,color:rule.color||'#ffb763'});
-   if(weapon==='ice')for(const p of players)if(p.alive&&characterDistance(p,x,y)<rule.radius)p.freezeTurns=3;
+   if(weapon==='ice')for(const p of players)if(p.alive&&characterDistance(p,x,y)<rule.radius){p.freezeTurns=3;p.tremorTurns=2;}
  }
  function spawn(weapon,x,y,angle,power,owner,extra={}){
    const rule=weaponRule(weapon),speed=shotSpeed(weapon,power);
@@ -65,7 +68,17 @@ export function createGame(level,source,{firstTeam=0,introTicks=0,teamSize=3}={}
  }
  function split(p){
    effect('split',p.x,p.y,{radius:24,color:'#ffc67d'});
-   for(let i=0;i<5;i++)spawn('cluster',p.x+(i-2)*4,p.y,.35+i*.6,.6,null,{child:true,ownerId:p.ownerId,team:p.team,vx:p.vx*.4+(i-2)*1.6,vy:Math.max(1,p.vy*.5),gravity:.25});
+   // Fan out from one pivot along the flight direction. Center the impulses
+   // so the group's average velocity still follows the original shot.
+   const heading=Math.atan2(p.vy,p.vx),spread=.55,impulse=3.2;
+   const meanForward=(1+2*Math.cos(spread)+2*Math.cos(2*spread))/5;
+   for(let i=0;i<5;i++){
+     const angle=(i-2)*spread,forward=impulse*(Math.cos(angle)-meanForward),side=impulse*Math.sin(angle);
+     spawn('cluster',p.x,p.y,0,1,null,{child:true,ownerId:p.ownerId,team:p.team,
+       vx:p.vx+Math.cos(heading)*forward-Math.sin(heading)*side,
+       vy:p.vy+Math.sin(heading)*forward+Math.cos(heading)*side,
+       gravity:p.gravity??weaponRule(p.type).gravity});
+   }
  }
  function callAirSupport(x,y,flare){
    const dir=flare.team===1?-1:1;
@@ -94,16 +107,19 @@ export function createGame(level,source,{firstTeam=0,introTicks=0,teamSize=3}={}
      if(hit){damagePlayer(hit,rule.maximum);knockback(hit,p.vx,p.vy,rule.knockback);if(p.type==='arrow'&&hit.alive)hit.bleedTurns=2;}
      carveCircle(x,y,rule.crater||0);effect('hit',x,y,{radius:hit?16:7,color:rule.color});return;
    }
+   if(p.type==='gas'){
+     hazards.push({id:++entityId,type:'gas',x,y,radius:gasState({age:0}).radius,team:p.team,ownerId:p.ownerId,expires:turnId+4,age:0});
+     return;
+   }
    explode(x,y,p.type,hit);
    if(p.type==='frag')for(let i=0;i<8;i++)spawn('fragment',x,y-4,-Math.PI+i*Math.PI/4,.8,null,{ownerId:p.ownerId,team:p.team,fuse:65,bounces:0});
-   if(p.type==='gas')hazards.push({id:++entityId,type:'gas',x,y,radius:85,expires:turnId+4,age:0});
  }
- function trace(p,weapon){
-   const rule=weaponRule(weapon),x=p.x+Math.cos(p.angle)*20,y=p.y-10+Math.sin(p.angle)*20;
+ function trace(p,weapon,angle=p.angle){
+   const rule=weaponRule(weapon),x=p.x+Math.cos(angle)*20,y=p.y-10+Math.sin(angle)*20;
    let endX=x,endY=y;
-   for(let d=0;d<=rule.range;d+=2){endX=x+Math.cos(p.angle)*d;endY=y+Math.sin(p.angle)*d;
+   for(let d=0;d<=rule.range;d+=2){endX=x+Math.cos(angle)*d;endY=y+Math.sin(angle)*d;
      const hit=players.find(target=>target!==p&&hitsCharacter(target,endX,endY,1));
-     if(hit){damagePlayer(hit,rule.maximum);knockback(hit,Math.cos(p.angle),Math.sin(p.angle),rule.knockback);break;}
+     if(hit){damagePlayer(hit,rule.maximum);knockback(hit,Math.cos(angle),Math.sin(angle),rule.knockback);break;}
      if(isSolid(endX,endY)||endX<0||endX>WIDTH||endY>HEIGHT)break;
    }
    effect('beam',x,y,{x1:endX,y1:endY,color:'#fff2bc',ttl:16});
@@ -136,7 +152,7 @@ export function createGame(level,source,{firstTeam=0,introTicks=0,teamSize=3}={}
    if(age>=transit.duration){p.transit=null;p.isGrounded=false;}
  }
  function fireCurrent(weapon,point){
-   const p=activePlayer(),rule=ARSENAL[weapon],angle=p.angle;
+   const p=activePlayer(),rule=ARSENAL[weapon],angle=firingAngle(p,weapon,tick);
    cursors[currentTurn]=p.member;
    p.equipped=weapon;
    const startX=p.x+Math.cos(angle)*22,startY=p.y-10+Math.sin(angle)*22;
@@ -153,7 +169,7 @@ export function createGame(level,source,{firstTeam=0,introTicks=0,teamSize=3}={}
      spawn(weapon,p.x+side*26,p.y+5,0,1,p,{vx:0,vy:0,placed:true,fuse:rule.fuse});escapeTicks=rule.fuse;
    }else if(rule.kind==='mine'){
      hazards.push({id:++entityId,type:'mine',x:p.x+(Math.cos(angle)>=0?27:-27),y:p.y+7,radius:45,expires:turnId+8,age:0});escapeTicks=120;
-   }else if(rule.kind==='ray')trace(p,weapon);
+   }else if(rule.kind==='ray')trace(p,weapon,angle);
    else if(rule.kind==='beam'||rule.kind==='tunnel'){
      const x1=startX+Math.cos(angle)*rule.range,y1=startY+Math.sin(angle)*rule.range;
      terrain.apply({type:'tunnel',args:[startX,startY,x1,y1,rule.radius]});
@@ -215,7 +231,11 @@ export function createGame(level,source,{firstTeam=0,introTicks=0,teamSize=3}={}
    for(let i=projectiles.length-1;i>=0;i--){const p=projectiles[i];advanceProjectile(p,{players,terrain,width:WIDTH,height:HEIGHT,explode,impact,split});if(!p.alive)projectiles.splice(i,1);}
    for(let i=hazards.length-1;i>=0;i--){const h=hazards[i];h.age++;
      if(h.expires<=turnId){hazards.splice(i,1);continue;}
-     if(h.type==='gas'&&h.age%60===0)for(const p of players)if(p.alive&&characterDistance(p,h.x,h.y)<h.radius)damagePlayer(p,5,'gas');
+     if(h.type==='gas'){
+       const cloud=gasState(h);h.radius=cloud.radius;
+       if(h.age>=720){hazards.splice(i,1);continue;}
+       if(h.age%60===0)for(const p of players)if(p.alive&&!hasGasMask(p,{projectiles,hazards})&&characterDistance(p,h.x,h.y)<h.radius)damagePlayer(p,cloud.damage,'gas');
+     }
      if(h.type==='mine'&&h.age>=120&&players.some(p=>p.alive&&characterDistance(p,h.x,h.y)<45)){hazards.splice(i,1);explode(h.x,h.y,'mine');}
    }
    updateOutcome();if(gameOver)return;

@@ -1,0 +1,3 @@
+Generated using the built-in image_gen tool, with transparent_background=true.
+
+Use case: logo-brand. Create a polished raster title logo for a colorful cartoon turn-based artillery game set around a Mexican coastal port. Transparent background, wide horizontal composition, tightly framed with modest transparent padding. Exact main text: "BFTMA". Huge readable chunky dimensional illustrated letters, metallic teal and warm sand/gold, dark navy outlines, playful adventure game finish. A small integrated port crane and ocean wave motif is acceptable, but keep lettering dominant and readable at small mobile sizes. No additional words, no subtitle, no characters, no rectangular background. This is a production menu title asset, not a mockup.

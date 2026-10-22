@@ -1,16 +1,35 @@
 import {getPivotCoords} from './renderer.js';
-export function bindInput(canvas,{getGame,canControl,send,getCamera=()=>null,isPlaying=()=>true,getWeapon=()=>null}) {
+import {ARSENAL} from '../engine/arsenal.js';
+export function bindInput(canvas,{getGame,canControl,send,getCamera=()=>null,isPlaying=()=>true,getWeapon=()=>null,onFire=()=>send({type:'fire',weapon:getWeapon()})}) {
  const keys={left:false,right:false,jump:false};
  let dragging=false, dragTurn=null,tapIntent=null,teleportPreview=null;
  const emit=()=>send({type:'input',...keys});
  const pointers=new Map();let panning=null,pinch=null;
- function clear(){keys.left=keys.right=keys.jump=false;dragging=false;tapIntent=null;teleportPreview=null;pointers.clear();panning=null;pinch=null;const camera=getCamera();if(camera)camera.hold=false;emit();}
- const mapping={a:'left',ArrowLeft:'left',d:'right',ArrowRight:'right',w:'jump',' ':'jump',ArrowUp:'jump'};
+ const keyboard={up:false,down:false,charging:false};let keyboardGame=null,keyboardTurn=null,keyboardElapsed=0;
+ const ready=()=>isPlaying()&&canControl()&&getGame()?.canFire;
+ const editable=target=>target instanceof Element&&(target.matches('input,select,textarea')||target.isContentEditable);
+ function stopAim(){keyboard.up=keyboard.down=keyboard.charging=false;keyboardElapsed=0;keyboardGame=null;keyboardTurn=null;}
+ function clear(){keys.left=keys.right=keys.jump=false;stopAim();dragging=false;tapIntent=null;teleportPreview=null;pointers.clear();panning=null;pinch=null;const camera=getCamera();if(camera)camera.hold=false;emit();}
+ const mapping={a:'left',arrowleft:'left',d:'right',arrowright:'right',w:'jump',' ':'jump'};
  window.addEventListener('keydown',e=>{
-   const key=mapping[e.key]; if(!key || e.target.matches('input,select,textarea'))return;
+   if(!isPlaying()||editable(e.target)||e.ctrlKey||e.metaKey||e.altKey)return;
+   const name=e.key.toLowerCase();
+   if(['arrowup','arrowdown','z','x'].includes(name)){
+     e.preventDefault();if(!ready())return;
+     if(name==='x'){if(!e.repeat&&getWeapon()!=='teleport'){keyboard.charging=false;onFire();stopAim();}return;}
+     keyboardGame=getGame();keyboardTurn=keyboardGame.turnId;
+     if(name==='arrowup')keyboard.up=true;
+     if(name==='arrowdown')keyboard.down=true;
+     if(name==='z'&&!e.repeat&&ARSENAL[getWeapon()]?.power){keyboard.charging=true;send({type:'power',power:.15});}
+     return;
+   }
+   const key=mapping[name]; if(!key)return;
    e.preventDefault(); if(canControl()){keys[key]=true;emit();}
  });
- window.addEventListener('keyup',e=>{const key=mapping[e.key];if(key){keys[key]=false;emit();}});
+ window.addEventListener('keyup',e=>{
+   const name=e.key.toLowerCase(),key=mapping[name];if(key){keys[key]=false;emit();}
+   if(name==='arrowup')keyboard.up=false;if(name==='arrowdown')keyboard.down=false;if(name==='z')keyboard.charging=false;
+ });
  window.addEventListener('blur',clear);
  document.addEventListener('visibilitychange',()=>{if(document.hidden)clear();});
  for(const [id,key] of [['btnLeft','left'],['btnRight','right'],['btnJump','jump']]){
@@ -93,5 +112,19 @@ export function bindInput(canvas,{getGame,canControl,send,getCamera=()=>null,isP
    const camera=getCamera();if(camera)camera.hold=false;
  });
  canvas.addEventListener('wheel',e=>{const camera=getCamera();if(!camera||!isPlaying())return;e.preventDefault();const rect=canvas.getBoundingClientRect();camera.zoomAt(Math.exp(-e.deltaY*.001),e.clientX-rect.left,e.clientY-rect.top);},{passive:false});
- return {clear,get teleportPreview(){return teleportPreview;}};
+ function update(dt){
+   const game=getGame();
+   if(!ready()||keyboardGame!==game||keyboardTurn!==game.turnId||editable(document.activeElement)){stopAim();return;}
+   if(!keyboard.up&&!keyboard.down&&!keyboard.charging){keyboardElapsed=0;return;}
+   keyboardElapsed+=dt;if(keyboardElapsed<1/30)return;
+   const elapsed=Math.min(.25,keyboardElapsed);keyboardElapsed=0;
+   const p=game.activePlayer,vertical=Number(keyboard.down)-Number(keyboard.up);
+   if(vertical){
+     const side=Math.cos(p.angle)<0?-1:1;
+     const elevation=Math.max(-Math.PI/2+.01,Math.min(Math.PI/2-.01,Math.atan2(Math.sin(p.angle),Math.abs(Math.cos(p.angle)))+vertical*elapsed*Math.PI/3));
+     send({type:'aim',angle:side===1?elevation:Math.PI-elevation});
+   }
+   if(keyboard.charging&&ARSENAL[getWeapon()]?.power&&p.power<1)send({type:'power',power:Math.min(1,p.power+elapsed*.5)});
+ }
+ return {clear,update,get teleportPreview(){return teleportPreview;}};
 }

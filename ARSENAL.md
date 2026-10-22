@@ -15,16 +15,16 @@ Todas las opciones están disponibles desde el primer turno. Son valores inicial
 | Apoyo aéreo | 28 por bomba | Lanza una bengala de humo rojo. La cámara muestra el mapa completo y un avión lo cruza a gran altura, soltando cinco bombas sobre la señal. Hay tres segundos para moverse y buscar cobertura mientras llega. |
 | Metralleta | 8 por bala | Ráfaga de ocho balas, con ligera dispersión y alcance 950. |
 | Escopeta | 10 por perdigón | Siete perdigones en abanico. Alcance 350; favorece la proximidad. |
-| Gas | 6 + nube | Explosión leve y nube de radio 85: 5 de daño por segundo, durante cuatro cambios de turno. |
+| Gas | 5 a 1 por segundo | Varios óvalos crecen de radio 90 a 260 y se desvanecen en 12 s, hasta cuatro cambios de turno. Aplica daño cada segundo dentro de la nube, sin explosión inicial. El equipo lanzador lleva máscaras que protegen del gas desde el lanzamiento hasta disiparse sus nubes. |
 | Flecha | 38 + sangrado | Parábola y daño directo. Sangrado de 6 al comenzar los dos próximos turnos de su equipo. |
 | Escudo | 22 por golpe | Cinco rebotes, incluso contra personajes. Puede regresar hacia quien lo lanzó. |
 | Teletransportador | — | Toca o haz clic en un destino a menos de 650 px. Se desintegra en partículas y reaparece. Arrastrar mueve la cámara. Un destino inválido no consume turno. |
 | Kit médico | Cura 35 | Solo al integrante activo, hasta 100; no revive. Consume turno. |
 | Mortero | 65 | Parábola de largo alcance (aproximadamente 900 px en terreno a la misma altura, a máxima potencia y 45°), explosión de radio 100 y cráter grande. Potencia variable. |
-| Racimo | 24 por minibomba | Se divide en cinco cargas al comenzar a descender. Potencia variable. |
+| Racimo | 24 por minibomba | Se divide desde un mismo punto en cinco parábolas en abanico al comenzar a descender. Los impulsos de apertura conservan la velocidad media del tiro y su gravedad. Potencia variable. |
 | Mina | 65 | Colocación con 2 s para huir. Después se activa por proximidad a 45 px, durante ocho cambios de turno. |
 | Rayo orbital | 85 | Dos turnos: marcador con potencia variable, fijación al enemigo más cercano a 140 px y llamada por radio desde el siguiente turno propio. Si está vacío, fogonazo gris y espera; desde el siguiente turno propio también se puede disparar sobre su posición sin enemigo fijado. Salta y se adhiere al objetivo; puede descartarse gratis antes de llamar o conservarse mientras usas otra arma. Satélite con carga y rayo vertical de 44 px que perfora el terreno y daña también a aliados. |
-| Criogénico | 18 + ralentización | Movimiento a la mitad y salto reducido en los dos próximos turnos de su equipo. |
+| Criogénico | 18 + congelación | Movimiento a la mitad y salto reducido durante dos turnos de su equipo. Durante el siguiente turno, la puntería y su guía oscilan hasta ±4°; el disparo usa el ángulo visible. |
 
 La potencia varía entre 15 y 100 %. Arrastrar más lejos la mira aumenta la fuerza; el deslizador permite afinarla después. Las armas instantáneas, de colocación, el kit médico y el teletransportador ignoran este control.
 

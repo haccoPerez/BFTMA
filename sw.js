@@ -1,10 +1,11 @@
 // Bump this version when publishing changes to the offline resources.
 const PREFIX='bftma-'+encodeURIComponent(new URL(self.registration.scope).pathname)+'-';
-const CACHE=PREFIX+'v9';
+const CACHE=PREFIX+'v16';
 const FILES=[
   './','index.html','index_pvp.html','manifest.webmanifest',
-  'src/app.js','src/characters/catalog.js','src/network/pvp.js','src/network/prediction.js','src/engine/arsenal.js','src/ui/coin.js',
-  'src/engine/ai.js','src/engine/combat.js','src/engine/game.js','src/engine/projectiles.js','src/engine/terrain.js','src/engine/orbital.js','src/ui/orbital-art.js',
+  'assets/branding/bftma-title-v1.png',
+  'src/app.js','src/characters/catalog.js','src/network/pvp.js','src/network/prediction.js','src/engine/arsenal.js','src/engine/aim.js','src/ui/coin.js',
+  'src/engine/ai.js','src/engine/combat.js','src/engine/game.js','src/engine/gas.js','src/engine/projectiles.js','src/engine/terrain.js','src/engine/orbital.js','src/ui/orbital-art.js',
   'src/levels/index.js','src/ui/battle-hud.js','src/ui/camera.js','src/ui/characters.js',
   'src/ui/combat-art.js','src/ui/customization.js','src/ui/game.css','src/ui/input.js',
   'src/ui/preparation.js','src/ui/renderer.js','src/ui/results.js','src/ui/scenery.js','src/ui/pwa.js','src/ui/weapon-art.js','src/ui/teleport-effects.js','src/ui/weapon-presentation.js',

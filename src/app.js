@@ -40,7 +40,7 @@ function send(command){
   if(authoritative())game.command(mode.value==='local'?game.currentTurn:0,data);
   else session.sendCommand(prediction.command(game,session.playerIndex,data));
 }
-const input=bindInput(canvas,{getGame:()=>game,canControl,send,getCamera:()=>camera,isPlaying:()=>playing,getWeapon:()=>weapon});
+const input=bindInput(canvas,{getGame:()=>game,canControl,send,getCamera:()=>camera,isPlaying:()=>playing,getWeapon:()=>weapon,onFire:()=>{$('fireBtn').click();}});
 const hud=bindBattleHud();
 const preparation=bindPreparation();
 const coin=bindCoin();
@@ -207,6 +207,7 @@ $('leave').addEventListener('click',()=>{setPlaying(false);disconnect();mode.dis
 function frame(now){
   const elapsed=lastTime?Math.min((now-lastTime)/1000,.25):0;lastTime=now;
   const running=playing&&game&&!loading&&(mode.value!=='pvp'||connected);
+  input.update(elapsed);
   if(canControl()&&game.canFire){
     const selected=loadouts[game.currentTurn];
     if(weapon!==selected.weapon){weapon=selected.weapon;hud.selectWeapon(weapon);}

@@ -10,7 +10,7 @@ Sube `index.html`, `index_pvp.html`, `manifest.webmanifest`, `sw.js`, `src/` y `
 
 El navegador carga los módulos directamente con `<script type="module">`. Para probar localmente puedes usar cualquier servidor estático que ya tengas disponible. Abrir el HTML con `file://` no es compatible con la carga de módulos y lectura del alfa del terreno.
 
-Selecciona modo, terreno, arma y dispara. A/D o flechas para moverse; W, espacio o flecha arriba para saltar. Arrastra el círculo de apuntado hacia atrás, como una resortera: el disparo sale en dirección contraria al arrastre. La distancia del arrastre cambia la potencia; también hay un deslizador de 15 a 100 %. Se dispara con el botón ¡Fuego! También hay botones táctiles. La bazooka describe una parábola con gravedad suave (0.12 por paso de simulación); el limón conserva su gravedad de 0.25 y sus rebotes.
+Selecciona modo, terreno, arma y dispara. A/D o flechas izquierda/derecha para moverse; W o espacio para saltar. Mantén flecha arriba/abajo para ajustar la elevación. Mantén Z para cargar la potencia desde 15 hasta 100 % (al soltar se conserva); pulsa X para disparar. La carga se cancela al cambiar de turno, arma o perder el foco. El teletransportador sigue requiriendo elegir un destino en el mapa. Arrastra el círculo de apuntado hacia atrás, como una resortera: el disparo sale en dirección contraria al arrastre. La distancia del arrastre cambia la potencia; también hay un deslizador de 15 a 100 %. Se dispara con el botón ¡Fuego! También hay botones táctiles. La bazooka describe una parábola con gravedad suave (0.12 por paso de simulación); el limón conserva su gravedad de 0.25 y sus rebotes.
 
 ## Menú de preparación
 

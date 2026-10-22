@@ -1,4 +1,6 @@
 import {drawCharacter} from './characters.js';
+import {gasState,hasGasMask} from '../engine/gas.js';
+import {firingAngle} from '../engine/aim.js';
 import {drawBackground,drawWater} from './scenery.js';
 import {drawProjectile,drawGraves,drawShotEffects,drawEquipment} from './combat-art.js';
 import {ARSENAL,shotSpeed} from '../engine/arsenal.js';
@@ -41,6 +43,7 @@ export function renderGame(canvas,game,{camera=null,time=0,view=null,weapon='baz
         if(!p.alive)return;
         const isCurrent = idx === currentTurn;
         const visibleWeapon=p.equipped||weapon;
+        p={...p,angle:firingAngle(p,visibleWeapon,game.tick)};
         const pivot = getPivotCoords(p);
 
         if (isCurrent&&game.canAct&&visibleWeapon!=='teleport'&&!(visibleWeapon==='orbital'&&game.orbital?.markers.some(m=>m.team===p.team))) {
@@ -74,7 +77,7 @@ export function renderGame(canvas,game,{camera=null,time=0,view=null,weapon='baz
         }
 
         if(p.transit){drawTeleportEffect(ctx,p,game.tick);return;}
-        drawCharacter(ctx,p);
+        drawCharacter(ctx,p,{gasMask:hasGasMask(p,game)});
         if(isCurrent)drawHeldWeapon(ctx,p,game);
         const barWidth=48,barX=p.x-barWidth/2,barY=p.y-57;
         ctx.fillStyle='#111';ctx.fillRect(barX-1,barY-1,barWidth+2,8);
@@ -96,6 +99,14 @@ export function renderGame(canvas,game,{camera=null,time=0,view=null,weapon='baz
       }
       for(const h of game.hazards||[]){
         if(h.type==='signal')continue;
+        if(h.type==='gas'){
+          const cloud=gasState(h);ctx.save();ctx.fillStyle='#94dc68';ctx.globalAlpha=cloud.alpha;
+          for(let i=0;i<7;i++){
+            const angle=i*Math.PI*2/7,offset=i===0?0:cloud.radius*.38;
+            ctx.beginPath();ctx.ellipse(h.x+Math.cos(angle)*offset,h.y+Math.sin(angle)*offset*.65,cloud.radius*.62,cloud.radius*.48,Math.sin(i)*.2,0,Math.PI*2);ctx.fill();
+          }
+          ctx.restore();continue;
+        }
         if(h.type==='mine'){drawEquipment(ctx,'mine',h.x,h.y,32,24);continue;}
         ctx.save();ctx.globalAlpha=h.type==='gas'?.28:.95;ctx.fillStyle=h.type==='gas'?'#94dc68':'#ebbc58';
         ctx.beginPath();ctx.ellipse(h.x,h.y,h.type==='gas'?h.radius:12,h.type==='gas'?h.radius*.75:6,0,0,Math.PI*2);ctx.fill();ctx.restore();

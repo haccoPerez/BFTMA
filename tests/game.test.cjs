@@ -11,7 +11,7 @@ test('teams, twenty weapons, direct damage, power, prediction and mobile UI',asy
  try{
   await new Promise((resolve,reject)=>{server.stdout.once('data',resolve);server.once('error',reject);server.once('exit',code=>reject(Error('Server exited '+code)));});
   browser=await chromium.launch({headless:true,...(process.env.BFTMA_BROWSER_CHANNEL?{channel:process.env.BFTMA_BROWSER_CHANNEL}:{})});
-  const page=await browser.newPage({viewport:{width:844,height:390}}),errors=[];
+  const page=await browser.newPage({viewport:{width:844,height:390},hasTouch:true}),errors=[];
   await page.route('**/src/ui/renderer.js',async route=>{const response=await route.fetch();await route.fulfill({response,body:(await response.text()).replace(' game.terrain.flush?.();',' window.uiGame=game;window.uiCamera=camera;game.terrain.flush?.();')});});
   page.on('pageerror',error=>errors.push(error.message));
   await page.goto('http://localhost:8080',{waitUntil:'domcontentloaded'});await wait(page,()=>!document.getElementById('startGame').disabled);
@@ -37,6 +37,81 @@ test('teams, twenty weapons, direct damage, power, prediction and mobile UI',asy
    for(const p of deaths.players.filter(p=>p.team===0))damagePlayer(p,100);deaths.step();ensure(deaths.gameOver&&deaths.winner===1,'Whole team defeat missing');
    const coin=createGame(level,source,{firstTeam:1,introTicks:150});ensure(!command(coin,'fire',{weapon:'bazooka'}),'Can fire during coin toss');run(coin,150);ensure(coin.currentTurn===1&&coin.canFire,'Coin winner not applied');
    const outcomes={};
+   const {bindInput}=await import('/src/ui/input.js');
+   let keyboardGame=make(),keyboardWeapon='bazooka',keyboardEnabled=true;
+   const keyboard=bindInput(document.createElement('canvas'),{
+     getGame:()=>keyboardGame,canControl:()=>keyboardEnabled&&keyboardGame.canAct,isPlaying:()=>keyboardEnabled,getWeapon:()=>keyboardWeapon,
+     send:cmd=>keyboardGame.command(keyboardGame.currentTurn,{...cmd,turnId:keyboardGame.turnId})
+   });
+   const key=(type,name,repeat=false)=>document.body.dispatchEvent(new KeyboardEvent(type,{key:name,repeat,bubbles:true,cancelable:true}));
+   let actor=keyboardGame.activePlayer,angle=actor.angle;
+   key('keydown','ArrowUp');keyboard.update(.1);key('keyup','ArrowUp');
+   ensure(actor.angle<angle&&!keyboardGame.inputState.jump,'Up does not adjust aim or still jumps');
+   angle=actor.angle;key('keydown','ArrowDown');keyboard.update(.1);key('keyup','ArrowDown');ensure(actor.angle>angle,'Down does not lower aim');
+   actor.angle=Math.PI+.25;angle=actor.angle;key('keydown','ArrowUp');keyboard.update(.1);key('keyup','ArrowUp');ensure(actor.angle>angle,'Left-facing aim moves in the wrong direction');
+   key('keydown','Z');ensure(actor.power===.15,'Charge does not start at minimum');keyboard.update(.1);ensure(actor.power>.15,'Held Z does not charge');
+   key('keyup','Z');const charged=actor.power;keyboard.update(.1);ensure(actor.power===charged&&!keyboardGame.lastShot,'Releasing Z changes power or fires');
+   key('keydown','z');for(let i=0;i<20;i++)keyboard.update(.1);ensure(actor.power===1,'Charge does not cap at full power');key('keyup','z');
+   key('keydown','x');ensure(keyboardGame.lastShot?.weapon==='bazooka','X does not fire');
+   const shot=keyboardGame.lastShot.id;key('keydown','x',true);ensure(keyboardGame.lastShot.id===shot,'X repeats a shot while held');key('keyup','x');
+   keyboardGame=make();actor=keyboardGame.activePlayer;keyboardWeapon='sniper';key('keydown','z');keyboard.update(.1);key('keyup','z');ensure(actor.power===1,'Z changes a fixed-power weapon');
+   keyboardWeapon='teleport';key('keydown','x');key('keyup','x');ensure(!keyboardGame.lastShot,'X fires teleport without a map destination');
+   keyboardWeapon='bazooka';key('keydown','z');window.dispatchEvent(new Event('blur'));keyboard.update(.1);ensure(actor.power===.15,'Blur does not cancel charging');key('keyup','z');
+   key('keydown','z');const changed=keyboardGame.snapshot();changed.turnId++;keyboardGame.restore(changed);keyboard.update(.1);ensure(keyboardGame.activePlayer.power===.15,'Charge leaks across turns');key('keyup','z');
+   const editor=document.createElement('input');document.body.append(editor);editor.focus();editor.dispatchEvent(new KeyboardEvent('keydown',{key:'x',bubbles:true}));ensure(!keyboardGame.lastShot,'Typing X in a field fires');editor.remove();
+   keyboard.clear();keyboardEnabled=false;
+   const {firingAngle}=await import('/src/engine/aim.js');
+   const frozen=make(),victim=frozen.players[1];
+   frozen.projectiles.push({id:990,type:'ice',x:victim.x,y:victim.y,vx:0,vy:0,age:0,fuse:1,team:0,ownerId:1,alive:true});run(frozen,1);
+   ensure(victim.tremorTurns===2&&victim.freezeTurns===3,'Ice does not apply tremor and slow');
+   command(frozen,'fire',{weapon:'medkit'});run(frozen,31);
+   ensure(frozen.currentTurn===1&&victim.tremorTurns===1,'Tremor expires before the affected team can act');
+   for(const weapon of ['bazooka','sniper','laser','machinegun','shotgun','orbital']){
+     const player={...victim,angle:-.4},a=firingAngle(player,weapon,0),b=firingAngle(player,weapon,18);
+     ensure(a!==b&&Math.abs(a-player.angle)<=4*Math.PI/180,'Aim does not oscillate within four degrees');
+   }
+   ensure(firingAngle(victim,'teleport',18)===victim.angle,'Tremor changes destination-based tools');
+   const shaking=make();shaking.activePlayer.tremorTurns=1;shaking.activePlayer.angle=-.7;
+   const expected=firingAngle(shaking.activePlayer,'bazooka',shaking.tick);command(shaking,'fire',{weapon:'bazooka'});
+   ensure(Math.abs(Math.atan2(shaking.projectiles[0].vy,shaking.projectiles[0].vx)-expected)<1e-9,'Shot does not match visible tremor');
+   command(frozen,'fire',{weapon:'medkit'});run(frozen,31);command(frozen,'fire',{weapon:'medkit'});run(frozen,31);
+   ensure(victim.tremorTurns===0&&victim.freezeTurns===1,'Tremor must last one team turn while slow lasts two');
+   for(const vx of [-9,9])for(const vy of [0,4]){
+     const cluster=make();
+     cluster.projectiles.push({id:900,type:'cluster',x:600,y:100,vx,vy,age:15,alive:true,ownerId:1,team:0});
+     const replay=make();replay.restore(cluster.snapshot());
+     run(cluster,1);run(replay,1);
+     const children=cluster.projectiles;
+     ensure(children.length===5&&children.every(p=>p.child&&p.x===600&&p.y===100&&p.ownerId===1&&p.team===0),'Racimo loses shared pivot or ownership');
+     const meanX=children.reduce((sum,p)=>sum+p.vx,0)/5;
+     ensure(Math.abs(meanX-vx)<1e-9,'Racimo loses horizontal inertia');
+     ensure(Math.abs(children.reduce((sum,p)=>sum+p.vy,0)/5-vy)<1e-9,'Racimo loses vertical inertia');
+     ensure(new Set(children.map(p=>Math.atan2(p.vy,p.vx).toFixed(5))).size===5,'Racimo does not fan into five trajectories');
+     const center=children[2],x=center.x,y=center.y,childVx=center.vx,childVy=center.vy;
+     run(cluster,1);run(replay,1);
+     ensure(Math.abs(center.x-x-childVx)<1e-9&&Math.abs(center.y-y-childVy-ARSENAL.cluster.gravity)<1e-9,'Minibomb does not follow a ballistic arc');
+     ensure(JSON.stringify(cluster.snapshot())===JSON.stringify(replay.snapshot()),'Racimo replay diverges');
+   }
+   const {gasState,hasGasMask}=await import('/src/engine/gas.js');
+   const fresh=gasState({age:0}),old=gasState({age:600});
+   ensure(fresh.radius===90&&old.radius>90,'Initial gas size is not doubled');
+   ensure(old.radius>fresh.radius&&old.alpha<fresh.alpha&&old.damage<fresh.damage,'Gas does not expand, fade and weaken');
+   const toxic=make(),ally=toxic.players[0],enemy=toxic.players[1];
+   enemy.x=ally.x+25;
+   toxic.hazards.push({type:'gas',team:ally.team,x:ally.x,y:ally.y,radius:45,age:0,expires:4});
+   const allyHealth=ally.health,enemyHealth=enemy.health;run(toxic,60);
+   ensure(ally.health===allyHealth&&enemy.health<enemyHealth,'Gas masks do not protect only their team');
+   const firstSecond=enemy.health;run(toxic,59);
+   ensure(enemy.health===firstSecond,'Gas damage ticks faster than once per second');
+   run(toxic,1);ensure(enemy.health<firstSecond&&ally.health===allyHealth,'Gas damage is not repeated each second or hurts allies');
+   const replica=make();replica.restore(toxic.snapshot());
+   ensure(hasGasMask(replica.players[0],replica),'Gas mask ownership lost in snapshot');
+   run(toxic,600);ensure(!hasGasMask(ally,toxic)&&!toxic.hazards.some(h=>h.type==='gas'),'Gas or mask outlives dissipation');
+   ensure(hasGasMask(ally,{projectiles:[{type:'gas',team:ally.team}],hazards:[]}), 'Masks missing during grenade flight');
+   const burst=make(),thrower=burst.players[0],nearby=burst.players[1];nearby.x=thrower.x+25;
+   burst.projectiles.push({id:900,type:'gas',x:thrower.x,y:thrower.y,vx:0,vy:0,age:0,fuse:1,team:thrower.team,ownerId:thrower.id,alive:true});
+   run(burst,1);ensure(thrower.health===100&&nearby.health===100,'Gas burst causes immediate explosive damage');
+   run(burst,59);ensure(thrower.health===100&&nearby.health<100,'Gas burst does not start protected, recurring damage');
    const mortar=make();mortar.activePlayer.angle=-Math.PI/4;
    command(mortar,'fire',{weapon:'mortar'});
    const shell=mortar.projectiles[0];
@@ -120,10 +195,31 @@ test('teams, twenty weapons, direct damage, power, prediction and mobile UI',asy
     renderGame(canvas,game,{camera,weapon:'airstrike',time:performance.now()});
   });
   await page.screenshot({path:'tests/air-support-preview.png'});await page.locator('#support-preview').evaluate(canvas=>canvas.remove());
+  const cdp=await page.context().newCDPSession(page);
+  const swipe=async(selector)=>{
+    const box=await page.locator(selector).boundingBox();
+    const x=box.x+box.width/2,y=box.y+box.height*.7;
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
+    for(let i=1;i<=10;i++){
+      await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y-i*Math.min(14,box.height*.05)}]});
+      await page.waitForTimeout(20);
+    }
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+    await page.waitForFunction(selector=>document.querySelector(selector).scrollTop>0,selector);
+  };
+  await page.locator('[data-setup-tab="arsenal"]').click();
+  await swipe('.arsenal-card');
+  await page.setViewportSize({width:390,height:844});
+  await page.locator('.arsenal-card').evaluate(card=>card.scrollTop=0);
+  await swipe('#mainMenu');
+  await page.setViewportSize({width:844,height:390});
+  await page.locator('[data-setup-tab="play"]').click();
   await page.locator('#startGame').click();await wait(page,()=>!document.getElementById('coinOverlay').hidden);await page.screenshot({path:'tests/coin-preview.png'});
   await wait(page,()=>!document.getElementById('fireBtn').disabled);
   const jump=await page.locator('#btnJump').boundingBox();assert.ok(jump.x>422,'Jump must be on the right');
-  await page.locator('#weaponToggle').click();await page.locator('[data-weapon="sniper"]').click();
+  await page.locator('#weaponToggle').click();await swipe('.weapon-grid');
+  assert.equal(await page.locator('.weapon-grid button').first().evaluate(button=>getComputedStyle(button).touchAction),'pan-y');
+  await page.locator('[data-weapon="sniper"]').click();
   await wait(page,()=>window.uiGame.activePlayer.equipped==='sniper');await page.screenshot({path:'tests/held-weapon-preview.png'});
   await page.locator('#weaponToggle').click();await page.locator('[data-weapon="frag"]').click();
   for(const value of [3,4,2]){await page.locator('#fuseToggle').click();await page.waitForFunction(value=>document.getElementById('fuseToggle').textContent===`Mecha: ${value} s`,value);}

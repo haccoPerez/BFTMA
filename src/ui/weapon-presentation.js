@@ -62,6 +62,7 @@ export function drawAirSupport(ctx,game){
   for(const plane of game.aircraft||[]){
     ctx.save();ctx.strokeStyle='#ffffff80';ctx.lineWidth=3;
     ctx.beginPath();ctx.moveTo(plane.x-plane.dir*35,plane.y);ctx.lineTo(plane.x-plane.dir*110,plane.y+3);ctx.stroke();
-    drawEquipment(ctx,'airstrike',plane.x,plane.y,150,104,plane.dir===1?-2.45:.69);ctx.restore();
+    ctx.translate(plane.x,plane.y);ctx.scale(plane.dir===1?-1:1,1);
+    drawEquipment(ctx,'airstrike',0,0,150,104,.69);ctx.restore();
   }
 }

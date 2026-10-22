@@ -30,7 +30,7 @@ export async function loadCharacterAssets(){
   }
 }
 function drawFrame(ctx,sprite,x,y,width,height){ctx.drawImage(sprite.image,sprite.x,sprite.y,sprite.width,sprite.height,x,y,width,height);}
-export function drawCharacter(ctx,player){
+export function drawCharacter(ctx,player,{gasMask=false}={}){
   const appearance=normalizeAppearance(player.appearance),body=sprites.get('raccoon');
   ctx.save();ctx.translate(player.x,player.y);
   // Team identity stays visible even when two players choose identical cosmetics.
@@ -57,6 +57,14 @@ export function drawCharacter(ctx,player){
     }
   }else{
     ctx.fillStyle=player.color;ctx.beginPath();ctx.arc(0,0,player.radius,0,Math.PI*2);ctx.fill();
+  }
+  if(gasMask){
+    ctx.strokeStyle='#25332d';ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(-15,-19);ctx.lineTo(10,-19);ctx.stroke();
+    ctx.fillStyle='#43554a';ctx.beginPath();ctx.ellipse(3,-17,12,10,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#a8e2cf';
+    for(const x of [-2,8]){ctx.beginPath();ctx.ellipse(x,-20,3.5,4,0,0,Math.PI*2);ctx.fill();ctx.stroke();}
+    ctx.fillStyle='#273b32';ctx.beginPath();ctx.arc(5,-10,5,0,Math.PI*2);ctx.fill();ctx.stroke();
   }
   ctx.restore();
 }
